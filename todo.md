@@ -2,18 +2,18 @@
 
 ## 1. Initial Setup and Configuration
 
-- [ ] **Initialize the Project Repository and Set Up Version Control**
+- [x] **Initialize the Project Repository and Set Up Version Control**
 
   - [x] Create a new Git repository for the project.
   - [x] Set up a `.gitignore` file to exclude unnecessary files.
-  - [ ] Commit the initial project structure to the repository.
+  - [x] Commit the initial project structure to the repository.
 
-- [ ] **Configure the Development Environment**
-  - [ ] Install Node.js and verify the installation.
-  - [ ] Initialize a new Node.js project using `npm init`.
-  - [ ] Install essential dependencies (e.g., Express.js, dotenv).
-  - [ ] Set up a basic server using Express.js.
-  - [ ] Configure environment variables using the `dotenv` package.
+- [x] **Configure the Development Environment**
+  - [x] Install Node.js and verify the installation.
+  - [x] Initialize a new Node.js project using `npm init`.
+  - [x] Install essential dependencies (e.g., Express.js, dotenv).
+  - [x] Set up a basic server using Express.js.
+  - [x] Configure environment variables using the `dotenv` package.
 
 ## 2. User Authentication Module
 
