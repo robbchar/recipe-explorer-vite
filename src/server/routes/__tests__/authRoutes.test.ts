@@ -1,14 +1,16 @@
 import request from 'supertest';
 import express from 'express';
-import authRoutes from './authRoutes.js';
+import authRoutes from '../authRoutes.js';
 
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 describe('Auth Routes', () => {
+  let authToken: string;
+
   describe('POST /api/auth/register', () => {
-    it('should register a new user with valid data', async () => {
+    it('should return token on successful registration', async () => {
       const response = await request(app)
         .post('/api/auth/register')
         .send({
@@ -17,9 +19,8 @@ describe('Auth Routes', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual({
-        message: 'User registered successfully'
-      });
+      expect(response.body).toHaveProperty('token');
+      authToken = response.body.token;  // Save token for protected route tests
     });
 
     it('should reject registration with invalid email', async () => {
@@ -51,9 +52,8 @@ describe('Auth Routes', () => {
     });
   });
 
-  // this is temporary in that it doesnt actually verify a good user since we don't save anything yet
   describe('POST /api/auth/login', () => {
-    it('should login user with valid credentials', async () => {
+    it('should return token on successful login', async () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({
@@ -62,9 +62,7 @@ describe('Auth Routes', () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        message: 'Login successful'
-      });
+      expect(response.body).toHaveProperty('token');
     });
 
     it('should reject login with invalid email', async () => {
@@ -92,6 +90,35 @@ describe('Auth Routes', () => {
       expect(response.body).toEqual({
         error: 'Email and password are required'
       });
+    });
+  });
+
+  describe('GET /api/auth/profile', () => {
+    it('should access protected route with valid token', async () => {
+      const response = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('user');
+      expect(response.body.user).toHaveProperty('email', 'test@example.com');
+    });
+
+    it('should reject access without token', async () => {
+      const response = await request(app)
+        .get('/api/auth/profile');
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('error', 'Authentication required');
+    });
+
+    it('should reject access with invalid token', async () => {
+      const response = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', 'Bearer invalid-token');
+
+      expect(response.status).toBe(403);
+      expect(response.body).toHaveProperty('error', 'Invalid or expired token');
     });
   });
 }); 

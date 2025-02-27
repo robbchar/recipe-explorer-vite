@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
-import { AuthController } from './authController.js';
+import jwt from 'jsonwebtoken';
+import { AuthController } from '../authController.js';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 describe('AuthController', () => {
   let authController: AuthController;
@@ -84,7 +87,7 @@ describe('AuthController', () => {
       });
     });
 
-    it('should return 201 for successful registration', async () => {
+    it('should return token on successful registration', async () => {
       mockRequest.body = {
         email: 'test@example.com',
         password: 'Password123'
@@ -96,9 +99,12 @@ describe('AuthController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(responseObject).toEqual({
-        message: 'User registered successfully'
-      });
+      expect(responseObject).toHaveProperty('token');
+      
+      // Verify token is valid
+      const token = (responseObject as any).token;
+      const decoded = jwt.verify(token, JWT_SECRET);
+      expect(decoded).toHaveProperty('email', 'test@example.com');
     });
   });
 
@@ -148,7 +154,14 @@ describe('AuthController', () => {
       });
     });
 
-    it('should return 200 for successful login', async () => {
+    it('should return token on successful login', async () => {
+      // First register a user
+      await authController.register(
+        { body: { email: 'test@example.com', password: 'Password123' } } as Request,
+        mockResponse as Response
+      );
+
+      // Then attempt login
       mockRequest.body = {
         email: 'test@example.com',
         password: 'Password123'
@@ -160,9 +173,12 @@ describe('AuthController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseObject).toEqual({
-        message: 'Login successful'
-      });
+      expect(responseObject).toHaveProperty('token');
+      
+      // Verify token is valid
+      const token = (responseObject as any).token;
+      const decoded = jwt.verify(token, JWT_SECRET);
+      expect(decoded).toHaveProperty('email', 'test@example.com');
     });
   });
 }); 

@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { validateEmail, validatePassword } from '../utils/validation.js';
 import { UserRegistrationData, UserLoginData } from '../types/user.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
 // Temporary storage until we add database
-const users: { email: string; password: string }[] = [];
+const users: { id: number; email: string; password: string }[] = [];
 
 export class AuthController {
   async register(req: Request, res: Response) {
@@ -34,9 +37,17 @@ export class AuthController {
       // Hash password and store user
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
-      users.push({ email, password: hashedPassword });
+      const user = { id: users.length + 1, email, password: hashedPassword };
+      users.push(user);
 
-      return res.status(201).json({ message: 'User registered successfully' });
+      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+        expiresIn: '24h'
+      });
+
+      return res.status(201).json({ 
+        message: 'User registered successfully',
+        token 
+      });
     } catch (error) {
       console.error('Registration error:', error);
       return res.status(500).json({ error: 'Internal server error' });
@@ -62,8 +73,16 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      return res.status(200).json({ message: 'Login successful' });
+      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+        expiresIn: '24h'
+      });
+
+      return res.status(200).json({ 
+        message: 'Login successful',
+        token 
+      });
     } catch (error) {
+      console.error('Login error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
