@@ -17,22 +17,22 @@
 
 ## 2. User Authentication Module
 
-- [ ] **Implement User Registration and Login Functionality**
+- [x] **Implement User Registration and Login Functionality**
 
-  - [ ] Create a user registration endpoint (`POST /register`).
-  - [ ] Create a user login endpoint (`POST /login`).
-  - [ ] Validate user input for registration and login.
+  - [x] Create a user registration endpoint (`POST /register`).
+  - [x] Create a user login endpoint (`POST /login`).
+  - [x] Validate user input for registration and login.
 
-- [ ] **Set Up Password Hashing and Secure Storage**
+- [x] **Set Up Password Hashing and Secure Storage**
 
-  - [ ] Install and configure the `bcrypt` package for password hashing.
-  - [ ] Hash passwords before storing them in the database.
-  - [ ] Implement password verification during login.
+  - [x] Install and configure the `bcrypt` package for password hashing.
+  - [x] Hash passwords before storing them in the database.
+  - [x] Implement password verification during login.
 
-- [ ] **Implement JWT-Based Authentication**
-  - [ ] Install and configure the `jsonwebtoken` package.
-  - [ ] Generate JWT tokens upon successful login.
-  - [ ] Implement middleware to protect routes requiring authentication.
+- [x] **Implement JWT-Based Authentication**
+  - [x] Install and configure the `jsonwebtoken` package.
+  - [x] Generate JWT tokens upon successful login.
+  - [x] Implement middleware to protect routes requiring authentication.
 
 ## 3. AI Integration for Recipe Generation
 
