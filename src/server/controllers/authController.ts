@@ -3,6 +3,9 @@ import bcrypt from 'bcrypt';
 import { validateEmail, validatePassword } from '../utils/validation.js';
 import { UserRegistrationData, UserLoginData } from '../types/user.js';
 
+// Temporary storage until we add database
+const users: { email: string; password: string }[] = [];
+
 export class AuthController {
   async register(req: Request, res: Response) {
     try {
@@ -22,13 +25,17 @@ export class AuthController {
           error: 'Password must be at least 8 characters long and contain uppercase, lowercase, and numbers' 
         });
       }
+      
+      // Check if user exists
+      if (users.find(u => u.email === email)) {
+        return res.status(400).json({ error: 'Email already registered' });
+      }
 
-      // Hash password
+      // Hash password and store user
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
+      users.push({ email, password: hashedPassword });
 
-      // TODO: Save user to database
-      // For now, just return success
       return res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       console.error('Registration error:', error);
@@ -49,15 +56,18 @@ export class AuthController {
         return res.status(400).json({ error: 'Invalid email format' });
       }
 
-      // TODO: Get user from database and verify password
-      // For now, just return mock success
+      // Find user and verify password
+      const user = users.find(u => u.email === email);
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
       return res.status(200).json({ message: 'Login successful' });
     } catch (error) {
-      console.error('Login error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
-} 
+}
 
 // example usage:
 // Registration request
