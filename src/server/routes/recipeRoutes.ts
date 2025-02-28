@@ -15,4 +15,9 @@ router.get('/:id', authenticateToken, recipeController.getRecipe.bind(recipeCont
 router.put('/:id', authenticateToken, recipeController.updateRecipe.bind(recipeController));
 router.delete('/:id', authenticateToken, recipeController.deleteRecipe.bind(recipeController));
 
+// Add these routes
+router.get('/categories', authenticateToken, recipeController.getCategories.bind(recipeController));
+router.get('/category/:category', authenticateToken, recipeController.getRecipesByCategory.bind(recipeController));
+router.patch('/:id/categories', authenticateToken, recipeController.updateRecipeCategories.bind(recipeController));
+
 export default router; 

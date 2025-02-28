@@ -53,21 +53,21 @@
 
 ## 4. Recipe Management System
 
-- [ ] **Set Up Database Schema for Recipes**
+- [x] **Set Up Database Schema for Recipes**
 
-  - [ ] Design a database schema to store recipe details.
-  - [ ] Implement models for recipe data.
+  - [x] Design a database schema to store recipe details.
+  - [x] Implement models for recipe data.
 
-- [ ] **Implement CRUD Operations for Recipe Management**
+- [x] **Implement CRUD Operations for Recipe Management**
 
-  - [ ] Create endpoints for creating, reading, updating, and deleting recipes.
-  - [ ] Implement validation and error handling for recipe data.
-  - [ ] Ensure that only authenticated users can perform CRUD operations on their own recipes.
+  - [x] Create endpoints for creating, reading, updating, and deleting recipes.
+  - [x] Implement validation and error handling for recipe data.
+  - [x] Ensure that only authenticated users can perform CRUD operations on their own recipes.
 
-- [ ] **Develop Functionality to Categorize Recipes**
-  - [ ] Implement a system to assign categories to recipes.
-  - [ ] Create endpoints to retrieve recipes by category.
-  - [ ] Ensure that categories are predefined and cannot be modified by users.
+- [x] **Develop Functionality to Categorize Recipes**
+  - [x] Implement a system to assign categories to recipes.
+  - [x] Create endpoints to retrieve recipes by category.
+  - [x] Ensure that categories are predefined and cannot be modified by users.
 
 ## 5. Frontend Development
 

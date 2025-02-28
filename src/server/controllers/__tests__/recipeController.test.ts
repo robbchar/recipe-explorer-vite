@@ -3,32 +3,47 @@ import { PrismaClient } from '@prisma/client';
 import { RecipeController } from '../recipeController.js';
 import { AuthRequest } from '../../middleware/auth.js';
 import { VertexAIService } from '../../services/ai/vertex.js';
+import { PREDEFINED_CATEGORIES } from '../../constants/categories.js';
 
-// First, create the mock function
+// First, create the mock function for VertexAI
 const mockGenerateRecipe = jest.fn();
 
-// Then use it in the mock implementation
 jest.mock('../../services/ai/vertex.js', () => ({
   VertexAIService: jest.fn().mockImplementation(() => ({
-    generateRecipe: mockGenerateRecipe  // Use the same mock function reference
+    generateRecipe: mockGenerateRecipe
   }))
 }));
 
+// Mock Prisma
 jest.mock('@prisma/client', () => {
-  const mockPrisma = {
-    recipe: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    }
+  const mockPrismaRecipe = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   };
+
+  const mockPrisma = {
+    recipe: mockPrismaRecipe,
+    $disconnect: jest.fn(),
+  };
+
   return { PrismaClient: jest.fn(() => mockPrisma) };
 });
 
-// Get reference to Prisma mock
-const mockPrisma = (new PrismaClient()) as jest.Mocked<PrismaClient>;
+// Type for our mock
+type MockPrismaClient = {
+  recipe: {
+    create: jest.Mock;
+    findMany: jest.Mock;
+    findUnique: jest.Mock;
+    update: jest.Mock;
+    delete: jest.Mock;
+  };
+};
+
+const prisma = new PrismaClient() as unknown as MockPrismaClient;
 
 describe('RecipeController', () => {
   let recipeController: RecipeController;
@@ -181,7 +196,7 @@ describe('RecipeController', () => {
 
     it('should create a recipe successfully', async () => {
       mockRequest.body = validRecipe;
-      mockPrisma.recipe.create.mockResolvedValueOnce({
+      prisma.recipe.create.mockResolvedValueOnce({
         ...validRecipe,
         id: '1',
         userId: '1',
@@ -195,7 +210,7 @@ describe('RecipeController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(mockPrisma.recipe.create).toHaveBeenCalled();
+      expect(prisma.recipe.create).toHaveBeenCalled();
     });
 
     it('should return 400 for invalid recipe data', async () => {
@@ -238,7 +253,7 @@ describe('RecipeController', () => {
         }
       ];
 
-      mockPrisma.recipe.findMany.mockResolvedValueOnce(mockRecipes);
+      prisma.recipe.findMany.mockResolvedValueOnce(mockRecipes);
 
       await recipeController.getRecipes(
         mockRequest as AuthRequest,
@@ -261,7 +276,7 @@ describe('RecipeController', () => {
       };
 
       mockRequest.params = { id: '1' };
-      mockPrisma.recipe.findUnique.mockResolvedValueOnce(mockRecipe);
+      prisma.recipe.findUnique.mockResolvedValueOnce(mockRecipe);
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
@@ -274,7 +289,7 @@ describe('RecipeController', () => {
 
     it('should return 404 for non-existent recipe', async () => {
       mockRequest.params = { id: '999' };
-      mockPrisma.recipe.findUnique.mockResolvedValueOnce(null);
+      prisma.recipe.findUnique.mockResolvedValueOnce(null);
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
@@ -287,7 +302,7 @@ describe('RecipeController', () => {
     it('should return 403 for unauthorized access', async () => {
       mockRequest.params = { id: '1' };
       mockRequest.user = { id: '2', email: 'other@example.com' };
-      mockPrisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findUnique.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
@@ -317,12 +332,12 @@ describe('RecipeController', () => {
       mockRequest.params = { id: '1' };
       mockRequest.body = updateData;
       
-      mockPrisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findUnique.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
       
-      mockPrisma.recipe.update.mockResolvedValueOnce({
+      prisma.recipe.update.mockResolvedValueOnce({
         ...updateData,
         id: '1',
         userId: '1'
@@ -341,7 +356,7 @@ describe('RecipeController', () => {
     it('should delete a recipe successfully', async () => {
       mockRequest.params = { id: '1' };
       
-      mockPrisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findUnique.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
@@ -352,9 +367,96 @@ describe('RecipeController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(204);
-      expect(mockPrisma.recipe.delete).toHaveBeenCalledWith({
+      expect(prisma.recipe.delete).toHaveBeenCalledWith({
         where: { id: '1' }
       });
+    });
+  });
+
+  describe('getCategories', () => {
+    it('should return all predefined categories', async () => {
+      await recipeController.getCategories(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(responseObject).toEqual(PREDEFINED_CATEGORIES);
+    });
+  });
+
+  describe('getRecipesByCategory', () => {
+    it('should return recipes for a valid category', async () => {
+      mockRequest.params = { category: 'Dinner' };
+      const mockRecipes = [
+        {
+          id: '1',
+          title: 'Recipe 1',
+          userId: '1',
+          categories: [{ name: 'Dinner' }]
+        }
+      ];
+
+      prisma.recipe.findMany.mockResolvedValueOnce(mockRecipes);
+
+      await recipeController.getRecipesByCategory(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(responseObject).toEqual(mockRecipes);
+    });
+
+    it('should return 400 for invalid category', async () => {
+      mockRequest.params = { category: 'InvalidCategory' };
+
+      await recipeController.getRecipesByCategory(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('updateRecipeCategories', () => {
+    it('should update recipe categories successfully', async () => {
+      mockRequest.params = { id: '1' };
+      mockRequest.body = { categories: ['Dinner', 'Italian'] };
+
+      prisma.recipe.findUnique.mockResolvedValueOnce({
+        id: '1',
+        userId: '1'
+      });
+
+      prisma.recipe.update.mockResolvedValueOnce({
+        id: '1',
+        userId: '1',
+        categories: [
+          { name: 'Dinner' },
+          { name: 'Italian' }
+        ]
+      });
+
+      await recipeController.updateRecipeCategories(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should return 400 for invalid categories', async () => {
+      mockRequest.params = { id: '1' };
+      mockRequest.body = { categories: ['InvalidCategory'] };
+
+      await recipeController.updateRecipeCategories(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
     });
   });
 }); 
