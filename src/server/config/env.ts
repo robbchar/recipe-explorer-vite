@@ -9,7 +9,12 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   apiKey: process.env.API_KEY,
   databaseUrl: process.env.DATABASE_URL,
-  jwtSecret: process.env.JWT_SECRET
+  jwtSecret: process.env.JWT_SECRET,
+  
+  googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT,
+  googleCloudLocation: process.env.GOOGLE_CLOUD_LOCATION || 'us-west1',
+  googleCloudAppCreds: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  googleAiModel: process.env.GOOGLE_AI_MODEL || 'gemini-1.5-pro'
 };
 
 // Validate required environment variables

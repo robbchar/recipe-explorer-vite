@@ -2,6 +2,7 @@ import express from "express";
 import ViteExpress from "vite-express";
 import { config, validateEnv } from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
+import recipeRoutes from './routes/recipeRoutes.js';
 
 // Validate environment variables before starting the server
 validateEnv();
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Use auth routes
 app.use('/api/auth', authRoutes);
+app.use('/api/recipes', recipeRoutes);
 
 app.get("/hello", (_, res) => {
   res.send("Hello Vite + React + TypeScript!");

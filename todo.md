@@ -36,20 +36,20 @@
 
 ## 3. AI Integration for Recipe Generation
 
-- [ ] **Research and Select an Appropriate AI Model**
+- [x] **Research and Select an Appropriate AI Model**
 
-  - [ ] Evaluate AI models capable of generating recipes based on user input.
-  - [ ] Select an AI model that balances performance and cost.
+  - [x] Evaluate AI models capable of generating recipes based on user input.
+  - [x] Select an AI model that balances performance and cost.
 
-- [ ] **Integrate the AI Model into the Backend**
+- [x] **Integrate the AI Model into the Backend**
 
-  - [ ] Set up API calls to interact with the chosen AI model.
-  - [ ] Implement error handling for AI interactions.
+  - [x] Set up API calls to interact with the chosen AI model.
+  - [x] Implement error handling for AI interactions.
 
-- [ ] **Develop Recipe Generation Endpoint**
-  - [ ] Create an endpoint (`POST /generate-recipe`) to handle user prompts.
-  - [ ] Process user input and pass it to the AI model.
-  - [ ] Return the generated recipe to the user.
+- [x] **Develop Recipe Generation Endpoint**
+  - [x] Create an endpoint (`POST /generate-recipe`) to handle user prompts.
+  - [x] Process user input and pass it to the AI model.
+  - [x] Return the generated recipe to the user.
 
 ## 4. Recipe Management System
 
