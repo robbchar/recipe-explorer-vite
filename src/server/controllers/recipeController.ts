@@ -206,7 +206,7 @@ export class RecipeController {
     }
   }
 
-  async getCategories(req: AuthRequest, res: Response) {
+  async getCategories(_req: AuthRequest, res: Response) {
     try {
       return res.status(200).json(PREDEFINED_CATEGORIES);
     } catch (error) {

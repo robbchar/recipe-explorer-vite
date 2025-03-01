@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { RecipeController } from '../recipeController.js';
 import { AuthRequest } from '../../middleware/auth.js';
-import { VertexAIService } from '../../services/ai/vertex.js';
 import { PREDEFINED_CATEGORIES } from '../../constants/categories.js';
 
 // First, create the mock function for VertexAI
