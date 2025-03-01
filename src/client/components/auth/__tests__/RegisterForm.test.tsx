@@ -112,4 +112,31 @@ describe('RegisterForm', () => {
     
     expect(await screen.findByText(/registration failed/i)).toBeInTheDocument();
   });
+
+  it('renders registration form fields', () => {
+    renderComponent();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+  });
+
+  it('allows entering registration details', () => {
+    renderComponent();
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.change(confirmPasswordInput, { target: { value: 'password123' } });
+
+    expect(emailInput).toHaveValue('test@example.com');
+    expect(passwordInput).toHaveValue('password123');
+    expect(confirmPasswordInput).toHaveValue('password123');
+  });
+
+  it('renders register button', () => {
+    renderComponent();
+    expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
+  });
 }); 

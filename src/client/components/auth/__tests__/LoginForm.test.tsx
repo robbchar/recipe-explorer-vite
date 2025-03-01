@@ -89,4 +89,27 @@ describe('LoginForm', () => {
     
     expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
   });
+
+  it('renders email and password inputs', () => {
+    renderComponent();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+  });
+
+  it('allows entering email and password', () => {
+    renderComponent();
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+    expect(emailInput).toHaveValue('test@example.com');
+    expect(passwordInput).toHaveValue('password123');
+  });
+
+  it('renders submit button', () => {
+    renderComponent();
+    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+  });
 }); 
