@@ -7,8 +7,6 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 export const config = {
   port: Number(process.env.PORT) || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  apiKey: process.env.API_KEY || '',
-  databaseUrl: process.env.DATABASE_URL || '',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key-here',
   
   googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT || '',
@@ -19,7 +17,7 @@ export const config = {
 
 // Validate required environment variables
 export const validateEnv = () => {
-  const required = ['API_KEY', 'DATABASE_URL', 'JWT_SECRET'];
+  const required = ['JWT_SECRET'];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {

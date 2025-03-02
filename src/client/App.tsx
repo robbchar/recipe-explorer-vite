@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
 import DashboardPage from './pages/DashboardPage';
+import NewRecipePage from './pages/NewRecipePage';
+import RecipeDetailPage from './pages/RecipeDetailPage';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +35,22 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recipes/new"
+              element={
+                <ProtectedRoute>
+                  <NewRecipePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recipes/:id"
+              element={
+                <ProtectedRoute>
+                  <RecipeDetailPage />
                 </ProtectedRoute>
               }
             />

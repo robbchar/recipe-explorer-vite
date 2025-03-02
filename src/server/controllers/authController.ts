@@ -1,17 +1,15 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { validateEmail, validatePassword } from '../utils/validation.js';
-import { UserRegistrationData, UserLoginData } from '../types/user.js';
-import { JWT_SECRET } from '../constants/auth.js';
-
-// Temporary storage until we add database
-const users: { id: number; email: string; password: string }[] = [];
+import { validateEmail, validatePassword } from '../utils/validation';
+import { UserRegistrationData, UserLoginData } from '../types/user';
+import { JWT_SECRET } from '../constants/auth';
+import prisma from '../lib/prisma';
 
 export class AuthController {
   async register(req: Request, res: Response) {
     try {
-      const { email, password }: UserRegistrationData = req.body;
+      const { email, password, name }: UserRegistrationData = req.body;
 
       // Validate input
       if (!email || !password) {
@@ -29,23 +27,37 @@ export class AuthController {
       }
       
       // Check if user exists
-      if (users.find(u => u.email === email)) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (existingUser) {
         return res.status(400).json({ error: 'Email already registered' });
       }
 
       // Hash password and store user
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
-      const user = { id: users.length + 1, email, password: hashedPassword };
-      users.push(user);
+      
+      const user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name: name || email.split('@')[0]
+        }
+      });
 
-      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
         expiresIn: '24h'
       });
 
       return res.status(201).json({ 
-        message: 'User registered successfully',
-        token 
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        },
+        token
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -67,18 +79,25 @@ export class AuthController {
       }
 
       // Find user and verify password
-      const user = users.find(u => u.email === email);
+      const user = await prisma.user.findUnique({
+        where: { email }
+      });
+
       if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
         expiresIn: '24h'
       });
 
       return res.status(200).json({ 
-        message: 'Login successful',
-        token 
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        },
+        token
       });
     } catch (error) {
       console.error('Login error:', error);

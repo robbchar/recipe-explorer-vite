@@ -1,90 +1,63 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma.js';
+import prisma from '../lib/prisma';
 import { Prisma } from '@prisma/client';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { RecipeController } from '../controllers/recipeController';
 
 const router = Router();
+const recipeController = new RecipeController();
 
-// Get all recipes
-router.get('/', async (req, res) => {
-  try {
-    const recipes = await prisma.recipe.findMany({
-      include: {
-        user: true,
-        ingredients: true,
-        tags: true,
-        categories: true
-      }
-    });
-    res.json(recipes);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch recipes' });
-  }
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
+
+// Get all categories (must be before /:id routes)
+router.get('/categories/all', async (req: AuthRequest, res) => {
+  await recipeController.getCategories(req, res);
 });
 
-// Create a new recipe
-router.post('/', async (req, res) => {
-  try {
-    const { title, instructions, ingredients, tags, categories, userId } = req.body;
-    
-    const recipeData: Prisma.RecipeCreateInput = {
-      title,
-      instructions,
-      prepTime: '0',
-      cookTime: '0',
-      servings: 1,
-      difficulty: 'EASY',
-      user: {
-        connect: { id: userId }
-      },
-      ingredients: {
-        create: ingredients.map((ing: { name: string; amount: string; unit?: string }) => ({
-          amount: ing.amount,
-          unit: ing.unit,
-          ingredient: {
-            connectOrCreate: {
-              where: { name: ing.name },
-              create: { name: ing.name }
-            }
-          }
-        }))
-      },
-      tags: {
-        create: tags.map((tagName: string) => ({
-          tag: {
-            connectOrCreate: {
-              where: { name: tagName },
-              create: { name: tagName }
-            }
-          }
-        }))
-      },
-      categories: {
-        create: categories.map((categoryName: string) => ({
-          category: {
-            connectOrCreate: {
-              where: { name: categoryName },
-              create: { name: categoryName }
-            }
-          }
-        }))
-      }
-    };
+// Get recipes by category (must be before /:id routes)
+router.get('/categories/:category', async (req: AuthRequest, res) => {
+  await recipeController.getRecipesByCategory(req, res);
+});
 
-    const recipe = await prisma.recipe.create({
-      data: recipeData,
-      include: {
-        user: true,
-        ingredients: true,
-        tags: true,
-        categories: true
-      }
-    });
-    
-    res.json(recipe);
-  } catch (error) {
-    console.error('Failed to create recipe:', error);
-    res.status(500).json({ error: 'Failed to create recipe' });
-  }
+// Generate recipe preview
+router.post('/generate', async (req: AuthRequest, res) => {
+  await recipeController.generateRecipe(req, res);
+});
+
+// Save previewed recipe
+router.post('/save', async (req: AuthRequest, res) => {
+  await recipeController.saveRecipe(req, res);
+});
+
+// Get all recipes
+router.get('/', async (req: AuthRequest, res) => {
+  await recipeController.getRecipes(req, res);
+});
+
+// Create a new recipe manually
+router.post('/', async (req: AuthRequest, res) => {
+  await recipeController.createRecipe(req, res);
+});
+
+// Get recipe by id
+router.get('/:id', async (req: AuthRequest, res) => {
+  await recipeController.getRecipe(req, res);
+});
+
+// Update recipe
+router.put('/:id', async (req: AuthRequest, res) => {
+  await recipeController.updateRecipe(req, res);
+});
+
+// Delete recipe
+router.delete('/:id', async (req: AuthRequest, res) => {
+  await recipeController.deleteRecipe(req, res);
+});
+
+// Update recipe categories
+router.put('/:id/categories', async (req: AuthRequest, res) => {
+  await recipeController.updateRecipeCategories(req, res);
 });
 
 export default router; 

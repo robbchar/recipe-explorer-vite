@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { authenticateToken, AuthRequest } from '../auth.js';
-import { JWT_SECRET } from '../../constants/auth.js';
+import * as jwt from 'jsonwebtoken';
+import { authenticateToken, AuthRequest } from '../auth';
+import { JWT_SECRET } from '../../constants/auth';
 
 describe('Auth Middleware', () => {
   let mockRequest: AuthRequest;

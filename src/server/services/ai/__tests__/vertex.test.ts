@@ -1,5 +1,5 @@
-import { VertexAIService } from '../vertex.js';
-import { RecipePrompt } from '../types.js';
+import { VertexAIService } from '../vertex';
+import { RecipePrompt } from '../types';
 
 // Mock the VertexAI client
 const mockGenerateContent = jest.fn();

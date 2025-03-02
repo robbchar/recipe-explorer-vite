@@ -1,13 +1,13 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { RecipeController } from '../recipeController.js';
-import { AuthRequest } from '../../middleware/auth.js';
-import { PREDEFINED_CATEGORIES } from '../../constants/categories.js';
+import { RecipeController } from '../recipeController';
+import { AuthRequest } from '../../middleware/auth';
+import { PREDEFINED_CATEGORIES } from '../../constants/categories';
 
 // First, create the mock function for VertexAI
 const mockGenerateRecipe = jest.fn();
 
-jest.mock('../../services/ai/vertex.js', () => ({
+jest.mock('../../services/ai/vertex', () => ({
   VertexAIService: jest.fn().mockImplementation(() => ({
     generateRecipe: mockGenerateRecipe
   }))
@@ -37,7 +37,20 @@ jest.mock('@prisma/client', () => {
     tag: {
       upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
     },
+    recipeIngredient: {
+      create: jest.fn().mockResolvedValue({ id: '1' })
+    },
+    recipeTag: {
+      create: jest.fn().mockResolvedValue({ id: '1' })
+    },
+    recipeCategory: {
+      create: jest.fn().mockResolvedValue({ id: '1' })
+    },
     $disconnect: jest.fn(),
+    $transaction: jest.fn().mockImplementation(async (fn) => {
+      const result = await fn(mockPrisma);
+      return result;
+    })
   };
 
   return { PrismaClient: jest.fn(() => mockPrisma) };
@@ -64,6 +77,15 @@ type MockPrismaClient = {
   tag: {
     upsert: jest.Mock;
   };
+  recipeIngredient: {
+    create: jest.Mock;
+  };
+  recipeTag: {
+    create: jest.Mock;
+  };
+  recipeCategory: {
+    create: jest.Mock;
+  };
 };
 
 const prisma = new PrismaClient() as unknown as MockPrismaClient;
@@ -72,7 +94,7 @@ describe('RecipeController', () => {
   let recipeController: RecipeController;
   let mockRequest: Partial<AuthRequest>;
   let mockResponse: Partial<Response>;
-  let responseObject = {};
+  let responseObject: any = {};
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -123,13 +145,13 @@ describe('RecipeController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseObject).toEqual(expect.objectContaining({
+      expect(responseObject.preview).toEqual(expect.objectContaining({
         title: expect.any(String),
         ingredients: expect.any(Array),
         instructions: expect.any(Array),
         prepTime: expect.any(String),
         cookTime: expect.any(String),
-        servings: expect.any(Number),
+        servings: expect.any(String),
         difficulty: expect.any(String),
         tags: expect.any(Array)
       }));
@@ -179,8 +201,8 @@ describe('RecipeController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseObject).toHaveProperty('title');
-      expect(responseObject).toHaveProperty('ingredients');
+      expect(responseObject.preview).toHaveProperty('title');
+      expect(responseObject.preview).toHaveProperty('ingredients');
     });
 
     it('should handle complete recipe prompt', async () => {
@@ -198,17 +220,20 @@ describe('RecipeController', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseObject).toHaveProperty('title');
-      expect(responseObject).toHaveProperty('ingredients');
-      expect(responseObject).toHaveProperty('instructions');
-      expect(responseObject).toHaveProperty('difficulty', 'medium');
+      expect(responseObject.preview).toHaveProperty('title');
+      expect(responseObject.preview).toHaveProperty('ingredients');
+      expect(responseObject.preview).toHaveProperty('instructions');
+      expect(responseObject.preview.difficulty).toEqual('MEDIUM');
     });
   });
 
   describe('createRecipe', () => {
     const validRecipe = {
       title: 'Test Recipe',
-      ingredients: ['ingredient 1', 'ingredient 2'],
+      ingredients: [
+        { name: 'ingredient 1', amount: '1', unit: 'unit' },
+        { name: 'ingredient 2', amount: '1', unit: 'unit' }
+      ],
       instructions: ['step 1', 'step 2'],
       prepTime: '30 minutes',
       cookTime: '45 minutes',

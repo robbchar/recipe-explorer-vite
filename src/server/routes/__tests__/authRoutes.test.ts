@@ -1,16 +1,51 @@
 import request from 'supertest';
 import express from 'express';
-import authRoutes from '../authRoutes.js';
+import authRoutes from '../authRoutes';
 import * as jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../../constants/auth.js';
+import { JWT_SECRET } from '../../constants/auth';
+
+// Mock bcrypt
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashedPassword123'),
+  compare: jest.fn().mockResolvedValue(true)
+}));
+
+// Mock the prisma instance
+jest.mock('../../lib/prisma', () => ({
+  __esModule: true,
+  default: {
+    user: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    $disconnect: jest.fn(),
+    $use: jest.fn()
+  }
+}));
 
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
+// Get the mocked prisma instance
+const mockPrisma = jest.requireMock('../../lib/prisma').default;
+
 describe('Auth Routes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('POST /api/auth/register', () => {
     it('should return token on successful registration', async () => {
+      // Mock successful user creation
+      const mockUser = {
+        id: '123',
+        email: 'test@example.com',
+        password: 'hashedPassword123'
+      };
+      
+      mockPrisma.user.create.mockResolvedValueOnce(mockUser);
+
       const response = await request(app)
         .post('/api/auth/register')
         .send({
@@ -53,6 +88,15 @@ describe('Auth Routes', () => {
 
   describe('POST /api/auth/login', () => {
     it('should return token on successful login', async () => {
+      // Mock successful user lookup
+      const mockUser = {
+        id: '123',
+        email: 'test@example.com',
+        password: '$2b$10$abcdefghijklmnopqrstuvwxyz' // Mock hashed password
+      };
+      
+      mockPrisma.user.findUnique.mockResolvedValueOnce(mockUser);
+
       const response = await request(app)
         .post('/api/auth/login')
         .send({

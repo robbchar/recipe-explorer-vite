@@ -1,6 +1,6 @@
 import { VertexAI } from '@google-cloud/vertexai';
-import { RecipePrompt, Recipe } from './types.js';
-import { config } from '../../config/env.js';
+import { RecipePrompt, Recipe } from './types';
+import { config } from '../../config/env';
 
 // Initialize Vertex AI
 const vertex = new VertexAI({
@@ -22,17 +22,19 @@ export class VertexAIService {
       ${recipePrompt.mealType ? `Meal type: ${recipePrompt.mealType}` : ''}
       ${recipePrompt.difficulty ? `Difficulty level: ${recipePrompt.difficulty}` : ''}
       
-      Please provide the recipe in the following JSON format:
+      Please provide the recipe in the following JSON format, with ingredients in "AMOUNT UNIT NAME" format (e.g., "2 cups flour", "1 tablespoon sugar"):
       {
         "title": "Recipe Title",
-        "ingredients": ["ingredient 1", "ingredient 2"],
+        "ingredients": ["2 cups flour", "1 tablespoon sugar"],
         "instructions": ["step 1", "step 2"],
         "prepTime": "30 minutes",
         "cookTime": "45 minutes",
         "servings": 4,
         "difficulty": "medium",
         "tags": ["tag1", "tag2"]
-      }`;
+      }
+
+      Important: Each ingredient MUST follow the format "AMOUNT UNIT NAME" (e.g., "2 cups flour", "1 tablespoon sugar", "3 whole eggs", "1/2 teaspoon salt").`;
   }
 
   async generateRecipe(prompt: RecipePrompt): Promise<Recipe> {

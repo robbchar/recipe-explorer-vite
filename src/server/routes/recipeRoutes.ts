@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { RecipeController } from '../controllers/recipeController.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { RecipeController } from '../controllers/recipeController';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 const recipeController = new RecipeController();

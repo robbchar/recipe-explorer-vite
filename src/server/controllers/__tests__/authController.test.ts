@@ -1,7 +1,29 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthController } from '../authController.js';
-import { JWT_SECRET } from '../../constants/auth.js';
+import { AuthController } from '../authController';
+import { JWT_SECRET } from '../../constants/auth';
+
+// Mock bcrypt
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashedPassword123'),
+  compare: jest.fn().mockResolvedValue(true)
+}));
+
+// Mock the prisma instance
+jest.mock('../../lib/prisma', () => ({
+  __esModule: true,
+  default: {
+    user: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    $disconnect: jest.fn(),
+    $use: jest.fn()
+  }
+}));
+
+// Get the mocked prisma instance
+const mockPrisma = jest.requireMock('../../lib/prisma').default;
 
 describe('AuthController', () => {
   let authController: AuthController;
@@ -10,6 +32,7 @@ describe('AuthController', () => {
   let responseObject = {};
 
   beforeEach(() => {
+    jest.clearAllMocks();
     authController = new AuthController();
     mockRequest = {
       body: {},
@@ -91,6 +114,14 @@ describe('AuthController', () => {
         email: 'test@example.com',
         password: 'Password123'
       };
+
+      const mockUser = {
+        id: '123',
+        email: 'test@example.com',
+        password: 'hashedPassword123'
+      };
+
+      mockPrisma.user.create.mockResolvedValueOnce(mockUser);
       
       await authController.register(
         mockRequest as Request,
@@ -103,7 +134,7 @@ describe('AuthController', () => {
       // Verify token is valid
       const token = (responseObject as any).token;
       const decoded = jwt.verify(token, JWT_SECRET);
-      expect(decoded).toHaveProperty('email', 'test@example.com');
+      expect(decoded).toHaveProperty('userId', '123');
     });
   });
 
@@ -154,17 +185,18 @@ describe('AuthController', () => {
     });
 
     it('should return token on successful login', async () => {
-      // First register a user
-      await authController.register(
-        { body: { email: 'test@example.com', password: 'Password123' } } as Request,
-        mockResponse as Response
-      );
-
-      // Then attempt login
       mockRequest.body = {
         email: 'test@example.com',
         password: 'Password123'
       };
+
+      const mockUser = {
+        id: '123',
+        email: 'test@example.com',
+        password: 'hashedPassword123'
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValueOnce(mockUser);
       
       await authController.login(
         mockRequest as Request,
@@ -177,7 +209,7 @@ describe('AuthController', () => {
       // Verify token is valid
       const token = (responseObject as any).token;
       const decoded = jwt.verify(token, JWT_SECRET);
-      expect(decoded).toHaveProperty('email', 'test@example.com');
+      expect(decoded).toHaveProperty('userId', '123');
     });
   });
 }); 

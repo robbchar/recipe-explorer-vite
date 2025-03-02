@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma.js';
+import prisma from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../constants/auth.js';
+import { JWT_SECRET } from '../constants/auth';
 
 const router = Router();
 

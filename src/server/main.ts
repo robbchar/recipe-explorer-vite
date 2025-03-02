@@ -1,8 +1,8 @@
 import express from "express";
 import cors from 'cors';
 import ViteExpress from "vite-express";
-import { config, validateEnv } from './config/env.js';
-import authRoutes from './routes/authRoutes.js';
+import { config, validateEnv } from './config/env';
+import authRoutes from './routes/authRoutes';
 import recipeRoutes from './routes/recipes';
 import userRoutes from './routes/users';
 import { authenticateToken } from './middleware/auth';

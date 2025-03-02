@@ -1,10 +1,27 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { VertexAIService } from '../services/ai/vertex.js';
-import { AuthRequest } from '../middleware/auth.js';
-import { PREDEFINED_CATEGORIES, isValidCategory } from '../constants/categories.js';
+import { VertexAIService } from '../services/ai/vertex';
+import { AuthRequest } from '../middleware/auth';
+import { PREDEFINED_CATEGORIES, isValidCategory } from '../constants/categories';
 
 const prisma = new PrismaClient();
+
+function parseIngredient(ingredientString: string): { name: string; amount: string; unit: string } {
+  // Match pattern: AMOUNT UNIT NAME
+  // This regex handles:
+  // - Whole numbers and fractions (e.g., "2" or "1/2")
+  // - Units that may contain spaces (e.g., "fluid ounces")
+  // - Ingredient names that may contain spaces
+  const match = ingredientString.match(/^([\d./]+)\s+(.+?)\s+(.+)$/);
+  
+  if (match) {
+    const [, amount, unit, name] = match;
+    return { name: name.trim(), amount: amount.trim(), unit: unit.trim() };
+  }
+  
+  // Fallback if the format doesn't match exactly
+  return { name: ingredientString, amount: '1', unit: 'unit' };
+}
 
 export class RecipeController {
   private aiService: VertexAIService;
@@ -16,23 +33,56 @@ export class RecipeController {
   async generateRecipe(req: AuthRequest, res: Response) {
     try {
       const prompt = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
       // Fix: Add proper validation check
       if (!prompt || Object.keys(prompt).length === 0) {
         return res.status(400).json({ error: 'Recipe prompt is required' });
       }
 
-      const recipe = await this.aiService.generateRecipe(prompt);
-      return res.status(200).json(recipe);
+      const aiRecipe = await this.aiService.generateRecipe(prompt);
+
+      // Check for existing recipe with same title
+      const existingRecipe = await prisma.recipe.findFirst({
+        where: {
+          userId,
+          title: aiRecipe.title
+        }
+      });
+
+      if (existingRecipe) {
+        return res.status(409).json({
+          error: 'Recipe with this title already exists',
+          existingRecipe,
+          preview: aiRecipe
+        });
+      }
+      
+      // Format the recipe for preview
+      const recipePreview = {
+        ...aiRecipe,
+        ingredients: aiRecipe.ingredients.map(parseIngredient),
+        difficulty: aiRecipe.difficulty.toUpperCase(),
+        prepTime: aiRecipe.prepTime || "0",
+        cookTime: aiRecipe.cookTime || "0",
+        servings: String(aiRecipe.servings || 1),
+        isPreview: true
+      };
+
+      return res.status(200).json({ preview: recipePreview });
     } catch (error) {
       console.error('Recipe Generation Error:', error);
-      // Fix: Ensure error returns 500 status
       return res.status(500).json({ error: 'Failed to generate recipe' });
     }
   }
 
   async createRecipe(req: AuthRequest, res: Response) {
     try {
-      const { title, instructions, ingredients, tags = [], categories = [], prepTime = "0", cookTime = "0", servings = 1, difficulty = "EASY" } = req.body;
+      const { title, instructions, ingredients, tags = [], categories = [], prepTime = "0", cookTime = "0", servings = "1", difficulty = "EASY" } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -60,107 +110,94 @@ export class RecipeController {
         return res.status(400).json({ error: 'Categories must be an array' });
       }
 
-      // Create the recipe first
-      const recipe = await prisma.recipe.create({
-        data: {
-          title,
-          instructions: instructions.join('\n'),
-          prepTime,
-          cookTime,
-          servings,
-          difficulty,
-          userId
-        }
-      });
-
-      // Add ingredients
-      for (const ingredient of ingredients) {
-        const ingredientRecord = await prisma.ingredient.upsert({
-          where: { name: ingredient.name },
-          create: { name: ingredient.name },
-          update: {}
+      // Use a transaction to ensure all operations succeed or fail together
+      const result = await prisma.$transaction(async (tx) => {
+        // Create the recipe
+        const recipe = await tx.recipe.create({
+          data: {
+            title,
+            instructions: Array.isArray(instructions) ? instructions.join('\n') : instructions,
+            prepTime,
+            cookTime,
+            servings,
+            difficulty: difficulty.toUpperCase(),
+            userId
+          }
         });
 
-        await prisma.recipe.update({
+        // Add ingredients
+        await Promise.all(ingredients.map(async (ingredient) => {
+          const ingredientRecord = await tx.ingredient.upsert({
+            where: { name: ingredient.name },
+            create: { name: ingredient.name },
+            update: {}
+          });
+
+          await tx.recipeIngredient.create({
+            data: {
+              recipeId: recipe.id,
+              ingredientId: ingredientRecord.id,
+              amount: ingredient.amount || '1',
+              unit: ingredient.unit || 'unit'
+            }
+          });
+        }));
+
+        // Add tags
+        await Promise.all(tags.map(async (tag) => {
+          const tagName = typeof tag === 'string' ? tag : tag.name;
+          const tagRecord = await tx.tag.upsert({
+            where: { name: tagName },
+            create: { name: tagName },
+            update: {}
+          });
+
+          await tx.recipeTag.create({
+            data: {
+              recipeId: recipe.id,
+              tagId: tagRecord.id
+            }
+          });
+        }));
+
+        // Add categories
+        await Promise.all(categories.map(async (category) => {
+          const categoryName = typeof category === 'string' ? category : category.name;
+          const categoryRecord = await tx.category.upsert({
+            where: { name: categoryName },
+            create: { name: categoryName },
+            update: {}
+          });
+
+          await tx.recipeCategory.create({
+            data: {
+              recipeId: recipe.id,
+              categoryId: categoryRecord.id
+            }
+          });
+        }));
+
+        // Get the complete recipe
+        return await tx.recipe.findUnique({
           where: { id: recipe.id },
-          data: {
+          include: {
             ingredients: {
-              create: {
-                amount: ingredient.amount,
-                unit: ingredient.unit,
-                ingredient: {
-                  connect: { id: ingredientRecord.id }
-                }
+              include: {
+                ingredient: true
               }
-            }
-          }
-        });
-      }
-
-      // Add tags
-      for (const tag of tags) {
-        const tagRecord = await prisma.tag.upsert({
-          where: { name: tag.name },
-          create: { name: tag.name },
-          update: {}
-        });
-
-        await prisma.recipe.update({
-          where: { id: recipe.id },
-          data: {
+            },
             tags: {
-              create: {
-                tag: {
-                  connect: { id: tagRecord.id }
-                }
+              include: {
+                tag: true
               }
-            }
-          }
-        });
-      }
-
-      // Add categories
-      for (const category of categories) {
-        const categoryRecord = await prisma.category.upsert({
-          where: { name: category.name },
-          create: { name: category.name },
-          update: {}
-        });
-
-        await prisma.recipe.update({
-          where: { id: recipe.id },
-          data: {
+            },
             categories: {
-              create: {
-                category: {
-                  connect: { id: categoryRecord.id }
-                }
+              include: {
+                category: true
               }
             }
           }
         });
-      }
-
-      // Get the complete recipe
-      const result = await prisma.recipe.findUnique({
-        where: { id: recipe.id },
-        include: {
-          ingredients: {
-            include: {
-              ingredient: true
-            }
-          },
-          tags: {
-            include: {
-              tag: true
-            }
-          },
-          categories: {
-            include: {
-              category: true
-            }
-          }
-        }
       });
 
       res.status(201).json(result);
@@ -212,9 +249,21 @@ export class RecipeController {
           userId
         },
         include: {
-          ingredients: true,
-          tags: true,
-          categories: true,
+          ingredients: {
+            include: {
+              ingredient: true
+            }
+          },
+          tags: {
+            include: {
+              tag: true
+            }
+          },
+          categories: {
+            include: {
+              category: true
+            }
+          },
           user: true
         }
       });
@@ -458,6 +507,94 @@ export class RecipeController {
     } catch (error) {
       console.error('Recipe Category Update Error:', error);
       return res.status(500).json({ error: 'Failed to update recipe categories' });
+    }
+  }
+
+  // Add new method to save previewed recipe
+  async saveRecipe(req: AuthRequest, res: Response) {
+    try {
+      const recipe = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      // Check for existing recipe again (in case it was created while previewing)
+      const existingRecipe = await prisma.recipe.findFirst({
+        where: {
+          userId,
+          title: {
+            equals: recipe.title?.toLowerCase()
+          }
+        }
+      });
+
+      if (existingRecipe) {
+        return res.status(409).json({
+          error: 'Recipe with this title already exists',
+          existingRecipe
+        });
+      }
+
+      // Format the recipe for database storage
+      const recipeData = {
+        title: recipe.title,
+        instructions: Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions,
+        prepTime: recipe.prepTime || "0",
+        cookTime: recipe.cookTime || "0",
+        servings: recipe.servings || "1",
+        difficulty: recipe.difficulty.toUpperCase(),
+        user: {
+          connect: { id: userId }
+        },
+        ingredients: {
+          create: recipe.ingredients.map((ingredient: { name: string; amount: string; unit: string }) => ({
+            amount: ingredient.amount,
+            unit: ingredient.unit,
+            ingredient: {
+              connectOrCreate: {
+                where: { name: ingredient.name },
+                create: { name: ingredient.name }
+              }
+            }
+          }))
+        },
+        tags: {
+          create: recipe.tags.map((tagName: string) => ({
+            tag: {
+              connectOrCreate: {
+                where: { name: tagName },
+                create: { name: tagName }
+              }
+            }
+          }))
+        }
+      };
+
+      // Create the recipe
+      const result = await prisma.recipe.create({
+        data: recipeData,
+        include: {
+          ingredients: {
+            include: {
+              ingredient: true
+            }
+          },
+          tags: {
+            include: {
+              tag: true
+            }
+          },
+          categories: true,
+          user: true
+        }
+      });
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error('Recipe Save Error:', error);
+      return res.status(500).json({ error: 'Failed to save recipe', rawError: error });
     }
   }
 } 
