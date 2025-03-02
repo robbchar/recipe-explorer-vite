@@ -83,29 +83,29 @@
   - [x] Create a login form with fields for email and password.
   - [x] Develop a dashboard for authenticated users to manage their recipes.
 
-- [ ] **Implement Forms for Recipe Generation and Filtering**
-  - [ ] Create a form to input prompts for AI-generated recipes.
-  - [ ] Implement checkboxes or dropdowns for users to specify dietary preferences.
-  - [ ] Display generated recipes with options to save them to the user's collection.
+- [x] **Implement Forms for Recipe Generation and Filtering**
+  - [x] Create a form to input prompts for AI-generated recipes.
+  - [x] Implement checkboxes or dropdowns for users to specify dietary preferences.
+  - [x] Display generated recipes with options to save them to the user's collection.
 
 ## 6. Testing and Quality Assurance
 
-- [ ] **Write Unit Tests for Backend Modules**
+- [x] **Write Unit Tests for Backend Modules**
 
-  - [ ] Set up a testing framework (e.g., Jest).
-  - [ ] Write tests for user authentication endpoints.
-  - [ ] Write tests for recipe management endpoints.
+  - [x] Set up a testing framework (e.g., Jest).
+  - [x] Write tests for user authentication endpoints.
+  - [x] Write tests for recipe management endpoints.
 
-- [ ] **Write Unit Tests for Frontend Components**
+- [x] **Write Unit Tests for Frontend Components**
 
-  - [ ] Set up a testing library (e.g., React Testing Library).
-  - [ ] Write tests for registration and login forms.
-  - [ ] Write tests for recipe management components.
+  - [x] Set up a testing library (e.g., React Testing Library).
+  - [x] Write tests for registration and login forms.
+  - [x] Write tests for recipe management components.
 
-- [ ] **Conduct Integration Testing for End-to-End Workflows**
-  - [ ] Test the complete user registration and login process.
-  - [ ] Test the end-to-end recipe generation and saving process.
-  - [ ] Ensure that all components work together seamlessly.
+- [x] **Conduct Integration Testing for End-to-End Workflows**
+  - [x] Test the complete user registration and login process.
+  - [x] Test the end-to-end recipe generation and saving process.
+  - [x] Ensure that all components work together seamlessly.
 
 ## 7. Deployment Preparation
 
