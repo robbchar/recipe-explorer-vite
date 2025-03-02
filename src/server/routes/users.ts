@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { prisma } from '../lib/prisma';
+import prisma from '../lib/prisma.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../constants/auth.js';
 
 const router = Router();
 
@@ -40,7 +41,7 @@ router.post('/register', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET || 'your-secret-key',
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -74,7 +75,7 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET || 'your-secret-key',
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -98,7 +99,7 @@ router.get('/me', async (req, res) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -118,6 +119,24 @@ router.get('/me', async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error('Get user error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Example of token verification
+router.get('/verify', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    if (!decoded || typeof decoded !== 'object' || !('userId' in decoded)) {
+      return res.status(401).json({ error: 'Invalid token format' });
+    }
+    res.json({ userId: decoded.userId });
+  } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
   }
 });

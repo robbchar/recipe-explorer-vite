@@ -3,8 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { validateEmail, validatePassword } from '../utils/validation.js';
 import { UserRegistrationData, UserLoginData } from '../types/user.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { JWT_SECRET } from '../constants/auth.js';
 
 // Temporary storage until we add database
 const users: { id: number; email: string; password: string }[] = [];

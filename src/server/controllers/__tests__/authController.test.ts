@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthController } from '../authController.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { JWT_SECRET } from '../../constants/auth.js';
 
 describe('AuthController', () => {
   let authController: AuthController;
