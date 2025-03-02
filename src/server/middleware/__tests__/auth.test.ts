@@ -1,31 +1,31 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { authenticateToken, AuthRequest } from '../auth.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { JWT_SECRET } from '../../constants/auth.js';
 
 describe('Auth Middleware', () => {
-  let mockRequest: Partial<AuthRequest>;
+  let mockRequest: AuthRequest;
   let mockResponse: Partial<Response>;
-  let nextFunction: NextFunction = jest.fn();
+  let nextFunction = jest.fn() as jest.MockedFunction<NextFunction>;
 
   beforeEach(() => {
     mockRequest = {
       headers: {},
-    };
+    } as AuthRequest;
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
     };
+    nextFunction.mockClear();
   });
 
-  it('should authenticate valid token', () => {
+  it('should authenticate valid token', async () => {
     const token = jwt.sign({ id: '1', email: 'test@example.com' }, JWT_SECRET);
     mockRequest.headers = {
       authorization: `Bearer ${token}`
     };
 
-    authenticateToken(
+    await authenticateToken(
       mockRequest as AuthRequest,
       mockResponse as Response,
       nextFunction

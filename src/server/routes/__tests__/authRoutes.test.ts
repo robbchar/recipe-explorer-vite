@@ -1,14 +1,14 @@
 import request from 'supertest';
 import express from 'express';
 import authRoutes from '../authRoutes.js';
+import * as jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../../constants/auth.js';
 
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 describe('Auth Routes', () => {
-  let authToken: string;
-
   describe('POST /api/auth/register', () => {
     it('should return token on successful registration', async () => {
       const response = await request(app)
@@ -20,7 +20,6 @@ describe('Auth Routes', () => {
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('token');
-      authToken = response.body.token;  // Save token for protected route tests
     });
 
     it('should reject registration with invalid email', async () => {
@@ -95,6 +94,14 @@ describe('Auth Routes', () => {
 
   describe('GET /api/auth/profile', () => {
     it('should access protected route with valid token', async () => {
+      // Create a valid token
+      const testUser = {
+        id: '123',
+        email: 'test@example.com'
+      };
+      
+      const authToken = jwt.sign(testUser, JWT_SECRET);
+
       const response = await request(app)
         .get('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`);

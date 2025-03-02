@@ -1,17 +1,23 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { Request } from 'express';
+import * as jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../constants/auth';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-export interface AuthRequest extends Request {
-  user?: { id: string; email: string };
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
 }
 
-export const authenticateToken = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+  };
+}
+
+export const authenticateToken = (req: AuthRequest, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -20,10 +26,10 @@ export const authenticateToken = (
   }
 
   try {
-    const user = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
-    req.user = user;
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
+    req.user = decoded;
     next();
-  } catch (error) {
+  } catch (err) {
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 }; 

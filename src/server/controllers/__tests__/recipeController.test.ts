@@ -19,12 +19,24 @@ jest.mock('@prisma/client', () => {
     create: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
 
   const mockPrisma = {
     recipe: mockPrismaRecipe,
+    category: {
+      findUnique: jest.fn(),
+      upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
+    },
+    ingredient: {
+      upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name })),
+      connectOrCreate: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
+    },
+    tag: {
+      upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
+    },
     $disconnect: jest.fn(),
   };
 
@@ -37,8 +49,20 @@ type MockPrismaClient = {
     create: jest.Mock;
     findMany: jest.Mock;
     findUnique: jest.Mock;
+    findFirst: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
+  };
+  category: {
+    findUnique: jest.Mock;
+    upsert: jest.Mock;
+  };
+  ingredient: {
+    upsert: jest.Mock;
+    connectOrCreate: jest.Mock;
+  };
+  tag: {
+    upsert: jest.Mock;
   };
 };
 
@@ -235,7 +259,7 @@ describe('RecipeController', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(responseObject).toEqual({
-        error: 'Unauthorized'
+        error: 'User not authenticated'
       });
     });
   });
@@ -275,7 +299,7 @@ describe('RecipeController', () => {
       };
 
       mockRequest.params = { id: '1' };
-      prisma.recipe.findUnique.mockResolvedValueOnce(mockRecipe);
+      prisma.recipe.findFirst.mockResolvedValueOnce(mockRecipe);
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
@@ -288,7 +312,7 @@ describe('RecipeController', () => {
 
     it('should return 404 for non-existent recipe', async () => {
       mockRequest.params = { id: '999' };
-      prisma.recipe.findUnique.mockResolvedValueOnce(null);
+      prisma.recipe.findFirst.mockResolvedValueOnce(null);
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
@@ -301,7 +325,7 @@ describe('RecipeController', () => {
     it('should return 403 for unauthorized access', async () => {
       mockRequest.params = { id: '1' };
       mockRequest.user = { id: '2', email: 'other@example.com' };
-      prisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
@@ -324,22 +348,28 @@ describe('RecipeController', () => {
       cookTime: '35 minutes',
       servings: 2,
       difficulty: 'easy',
-      tags: ['updated']
+      tags: ['updated'],
+      categories: ['Dinner']
     };
 
     it('should update a recipe successfully', async () => {
       mockRequest.params = { id: '1' };
       mockRequest.body = updateData;
       
-      prisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
+
+      prisma.category.upsert.mockResolvedValueOnce({ id: '1', name: 'Dinner' });
+      prisma.ingredient.connectOrCreate.mockResolvedValueOnce({ id: '1', name: 'new ingredient' });
       
       prisma.recipe.update.mockResolvedValueOnce({
         ...updateData,
         id: '1',
-        userId: '1'
+        userId: '1',
+        categories: [{ name: 'Dinner' }],
+        ingredients: [{ id: '1', name: 'new ingredient', amount: '1' }]
       });
 
       await recipeController.updateRecipe(
@@ -355,7 +385,7 @@ describe('RecipeController', () => {
     it('should delete a recipe successfully', async () => {
       mockRequest.params = { id: '1' };
       
-      prisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
@@ -396,6 +426,7 @@ describe('RecipeController', () => {
         }
       ];
 
+      prisma.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Dinner' });
       prisma.recipe.findMany.mockResolvedValueOnce(mockRecipes);
 
       await recipeController.getRecipesByCategory(
@@ -424,7 +455,7 @@ describe('RecipeController', () => {
       mockRequest.params = { id: '1' };
       mockRequest.body = { categories: ['Dinner', 'Italian'] };
 
-      prisma.recipe.findUnique.mockResolvedValueOnce({
+      prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
         userId: '1'
       });
@@ -442,7 +473,6 @@ describe('RecipeController', () => {
         mockRequest as AuthRequest,
         mockResponse as Response
       );
-
       expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
 

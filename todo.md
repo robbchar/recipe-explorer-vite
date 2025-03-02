@@ -71,17 +71,17 @@
 
 ## 5. Frontend Development
 
-- [ ] **Set Up the Frontend Framework**
+- [x] **Set Up the Frontend Framework**
 
-  - [ ] Initialize a new React.js project.
-  - [ ] Install necessary dependencies (e.g., React Router, Axios).
-  - [ ] Set up routing for different pages (e.g., Home, Login, Register, Recipe Management).
+  - [x] Initialize a new React.js project.
+  - [x] Install necessary dependencies (e.g., React Router, Axios).
+  - [x] Set up routing for different pages (e.g., Home, Login, Register, Recipe Management).
 
-- [ ] **Develop User Interfaces for Registration, Login, and Recipe Management**
+- [x] **Develop User Interfaces for Registration, Login, and Recipe Management**
 
-  - [ ] Create a registration form with fields for email and password.
-  - [ ] Create a login form with fields for email and password.
-  - [ ] Develop a dashboard for authenticated users to manage their recipes.
+  - [x] Create a registration form with fields for email and password.
+  - [x] Create a login form with fields for email and password.
+  - [x] Develop a dashboard for authenticated users to manage their recipes.
 
 - [ ] **Implement Forms for Recipe Generation and Filtering**
   - [ ] Create a form to input prompts for AI-generated recipes.

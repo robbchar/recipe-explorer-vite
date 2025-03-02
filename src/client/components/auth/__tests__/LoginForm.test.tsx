@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import LoginForm from '../LoginForm';
+import { LoginForm } from '../LoginForm';
+import { AuthProvider } from '../../../context/AuthContext';
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -16,9 +17,11 @@ describe('LoginForm', () => {
 
   const renderComponent = () => {
     render(
-      <BrowserRouter>
-        <LoginForm />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <LoginForm />
+        </BrowserRouter>
+      </AuthProvider>
     );
   };
 
@@ -27,7 +30,7 @@ describe('LoginForm', () => {
     
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
   });
 
   it('submits form with valid data and redirects on success', async () => {
@@ -49,10 +52,10 @@ describe('LoginForm', () => {
       target: { value: 'password123' },
     });
     
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
     
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +88,7 @@ describe('LoginForm', () => {
       target: { value: 'wrongpassword' },
     });
     
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
     
     expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
   });
@@ -110,6 +113,6 @@ describe('LoginForm', () => {
 
   it('renders submit button', () => {
     renderComponent();
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
   });
 }); 

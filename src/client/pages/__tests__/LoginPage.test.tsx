@@ -1,25 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from '../../context/AuthContext';
 import LoginPage from '../LoginPage';
 
 describe('LoginPage', () => {
   const renderLoginPage = () => {
     return render(
-      <BrowserRouter>
-        <LoginPage />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <LoginPage />
+        </BrowserRouter>
+      </AuthProvider>
     );
   };
 
-  it('renders login page with title', () => {
+  it('renders login form with all elements', () => {
     renderLoginPage();
-    expect(screen.getByText('Sign in to your account')).toBeInTheDocument();
-  });
-
-  it('renders login form with input fields', () => {
-    renderLoginPage();
+    expect(screen.getByRole('heading', { name: /sign in to your account/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 }); 

@@ -1,6 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import RegisterForm from '../RegisterForm';
+import { AuthProvider } from '../../../context/AuthContext';
+import * as authContext from '../../../context/AuthContext';
+import { RegisterForm } from '../RegisterForm';
 
 // Mock useNavigate
 const mockNavigate = jest.fn();
@@ -16,9 +18,11 @@ describe('RegisterForm', () => {
 
   const renderComponent = () => {
     render(
-      <BrowserRouter>
-        <RegisterForm />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <RegisterForm />
+        </BrowserRouter>
+      </AuthProvider>
     );
   };
 
@@ -34,83 +38,54 @@ describe('RegisterForm', () => {
   it('shows error when passwords do not match', async () => {
     renderComponent();
     
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/^password$/i), {
-      target: { value: 'password123' },
-    });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'password456' },
-    });
+    await fillForm('doesNotMatch');
     
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
-    
-    expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
+    const errorMessage = await screen.findByRole('alert');
+    expect(errorMessage).toHaveTextContent('Passwords do not match');
   });
 
   it('submits form with valid data', async () => {
-    const mockFetch = jest.fn(() => 
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      })
-    );
-    global.fetch = mockFetch as any;
+    const mockRegister = jest.fn().mockResolvedValue({});
+    jest.spyOn(authContext, 'useAuth').mockReturnValue({
+      register: mockRegister,
+      user: null,
+      login: jest.fn(),
+      logout: jest.fn(),
+      isLoading: false
+    });
     
     renderComponent();
     
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/^password$/i), {
-      target: { value: 'password123' },
-    });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'password123' },
-    });
-    
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
+    await fillForm();
     
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'password123',
-        }),
-      });
-      expect(mockNavigate).toHaveBeenCalledWith('/login');
+      expect(mockRegister).toHaveBeenCalledWith('test@example.com', 'password123', 'Test User');
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     });
   });
 
   it('shows error message on registration failure', async () => {
-    const mockFetch = jest.fn(() => 
-      Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Registration failed' }),
-      })
-    );
-    global.fetch = mockFetch as any;
-    
+    // Set up mock before rendering
+    const mockRegister = jest.fn().mockRejectedValue(new Error('Registration failed'));
+    const mockUseAuth = jest.spyOn(authContext, 'useAuth').mockReturnValue({
+      register: mockRegister,
+      user: null,
+      login: jest.fn(),
+      logout: jest.fn(),
+      isLoading: false
+    });
+
     renderComponent();
     
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/^password$/i), {
-      target: { value: 'password123' },
-    });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'password123' },
-    });
+    // Fill in form fields
+    await fillForm();
     
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
-    
-    expect(await screen.findByText(/registration failed/i)).toBeInTheDocument();
+    // Wait for error message
+    const errorMessage = await screen.findByRole('alert');
+    expect(errorMessage).toHaveTextContent('Registration failed');
+
+    // Clean up mock
+    mockUseAuth.mockRestore();
   });
 
   it('renders registration form fields', () => {
@@ -140,3 +115,23 @@ describe('RegisterForm', () => {
     expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
   });
 }); 
+
+async function fillForm(confirmPassword = 'password123') {
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText(/name/i), {
+      target: { value: 'Test User' },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/^password$/i), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
+      target: { value: confirmPassword },
+    });
+
+    // Submit form
+    fireEvent.click(screen.getByRole('button', { name: /register/i }));
+  });
+}
