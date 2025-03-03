@@ -15,7 +15,15 @@ describe('Dashboard', () => {
       title: 'Test Recipe',
       description: 'A test recipe description',
       ingredients: [{ id: '1', name: 'Ingredient 1', amount: '1 cup' }],
-      tags: [{ id: '1', name: 'Test Tag' }],
+      tags: [
+        {
+          id: '1',
+          tag: {
+            id: '1',
+            name: 'Test Tag',
+          },
+        },
+      ],
     },
   ];
 
@@ -28,7 +36,7 @@ describe('Dashboard', () => {
     render(
       <BrowserRouter>
         <Dashboard />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
   };
 
@@ -46,7 +54,7 @@ describe('Dashboard', () => {
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockRecipes),
-      })
+      }),
     );
     global.fetch = mockFetch as any;
 
@@ -63,13 +71,15 @@ describe('Dashboard', () => {
       Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: 'Failed to fetch recipes' }),
-      })
+      }),
     );
     global.fetch = mockFetch as any;
 
     renderComponent();
 
-    expect(await screen.findByText(/failed to fetch recipes/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/failed to fetch recipes/i),
+    ).toBeInTheDocument();
   });
 
   it('handles logout correctly', async () => {
@@ -78,7 +88,7 @@ describe('Dashboard', () => {
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockRecipes),
-      })
+      }),
     );
     global.fetch = mockFetch as any;
 
@@ -100,7 +110,7 @@ describe('Dashboard', () => {
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockRecipes),
-      })
+      }),
     );
     global.fetch = mockFetch as any;
 
@@ -114,4 +124,4 @@ describe('Dashboard', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/recipes/new');
   });
-}); 
+});

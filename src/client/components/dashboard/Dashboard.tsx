@@ -6,7 +6,13 @@ interface Recipe {
   title: string;
   description: string;
   ingredients: { id: string; name: string; amount: string }[];
-  tags: { id: string; name: string }[];
+  tags: {
+    id: string;
+    tag: {
+      id: string;
+      name: string;
+    };
+  }[];
 }
 
 const Dashboard = () => {
@@ -14,41 +20,79 @@ const Dashboard = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const fetchRecipes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch('/api/recipes', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch recipes');
+      }
+
+      const data = await response.json();
+      setRecipes(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load recipes');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRecipes = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-
-        const response = await fetch('/api/recipes', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch recipes');
-        }
-
-        const data = await response.json();
-        setRecipes(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load recipes');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchRecipes();
   }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleDelete = async (e: React.MouseEvent, recipeId: string) => {
+    e.stopPropagation(); // Prevent navigation to recipe detail
+
+    if (!window.confirm('Are you sure you want to delete this recipe?')) {
+      return;
+    }
+
+    setIsDeleting(recipeId);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`/api/recipes/${recipeId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete recipe');
+      }
+
+      // Refresh the recipes list
+      await fetchRecipes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete recipe');
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   if (isLoading) {
@@ -94,21 +138,47 @@ const Dashboard = () => {
           {recipes.map((recipe) => (
             <div
               key={recipe.id}
-              className="border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer"
+              className="flex border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer relative"
               onClick={() => navigate(`/recipes/${recipe.id}`)}
             >
               <h3 className="text-xl font-semibold mb-2">{recipe.title}</h3>
-              <p className="text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
+              <p className="text-gray-600 mb-4 line-clamp-2">
+                {recipe.description}
+              </p>
               <div className="flex flex-wrap gap-2">
-                {recipe.tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                  >
-                    {tag.name}
-                  </span>
-                ))}
+                {recipe.tags
+                  .filter((tagRelation) => tagRelation && tagRelation.tag)
+                  .map((tagRelation) => (
+                    <span
+                      key={`${recipe.id}-${tagRelation.tag.id}`}
+                      className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                    >
+                      {tagRelation.tag.name}
+                    </span>
+                  ))}
               </div>
+              <button
+                onClick={(e) => handleDelete(e, recipe.id)}
+                className="top-2 right-2 p-2 text-gray-500 hover:text-red-600 transition-colors self-end"
+                disabled={isDeleting === recipe.id}
+              >
+                {isDeleting === recipe.id ? (
+                  <span className="text-sm">Deleting...</span>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
           ))}
         </div>
@@ -117,4 +187,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

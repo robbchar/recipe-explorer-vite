@@ -2,23 +2,30 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { VertexAIService } from '../services/ai/vertex';
 import { AuthRequest } from '../middleware/auth';
-import { PREDEFINED_CATEGORIES, isValidCategory } from '../constants/categories';
+import {
+  PREDEFINED_CATEGORIES,
+  isValidCategory,
+} from '../constants/categories';
 
 const prisma = new PrismaClient();
 
-function parseIngredient(ingredientString: string): { name: string; amount: string; unit: string } {
+function parseIngredient(ingredientString: string): {
+  name: string;
+  amount: string;
+  unit: string;
+} {
   // Match pattern: AMOUNT UNIT NAME
   // This regex handles:
   // - Whole numbers and fractions (e.g., "2" or "1/2")
   // - Units that may contain spaces (e.g., "fluid ounces")
   // - Ingredient names that may contain spaces
   const match = ingredientString.match(/^([\d./]+)\s+(.+?)\s+(.+)$/);
-  
+
   if (match) {
     const [, amount, unit, name] = match;
     return { name: name.trim(), amount: amount.trim(), unit: unit.trim() };
   }
-  
+
   // Fallback if the format doesn't match exactly
   return { name: ingredientString, amount: '1', unit: 'unit' };
 }
@@ -50,27 +57,27 @@ export class RecipeController {
       const existingRecipe = await prisma.recipe.findFirst({
         where: {
           userId,
-          title: aiRecipe.title
-        }
+          title: aiRecipe.title,
+        },
       });
 
       if (existingRecipe) {
         return res.status(409).json({
           error: 'Recipe with this title already exists',
           existingRecipe,
-          preview: aiRecipe
+          preview: aiRecipe,
         });
       }
-      
+
       // Format the recipe for preview
       const recipePreview = {
         ...aiRecipe,
         ingredients: aiRecipe.ingredients.map(parseIngredient),
         difficulty: aiRecipe.difficulty.toUpperCase(),
-        prepTime: aiRecipe.prepTime || "0",
-        cookTime: aiRecipe.cookTime || "0",
+        prepTime: aiRecipe.prepTime || '0',
+        cookTime: aiRecipe.cookTime || '0',
         servings: String(aiRecipe.servings || 1),
-        isPreview: true
+        isPreview: true,
       };
 
       return res.status(200).json({ preview: recipePreview });
@@ -82,7 +89,17 @@ export class RecipeController {
 
   async createRecipe(req: AuthRequest, res: Response) {
     try {
-      const { title, instructions, ingredients, tags = [], categories = [], prepTime = "0", cookTime = "0", servings = "1", difficulty = "EASY" } = req.body;
+      const {
+        title,
+        instructions,
+        ingredients,
+        tags = [],
+        categories = [],
+        prepTime = '0',
+        cookTime = '0',
+        servings = '1',
+        difficulty = 'EASY',
+      } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -94,12 +111,24 @@ export class RecipeController {
         return res.status(400).json({ error: 'Title is required' });
       }
 
-      if (!instructions || !Array.isArray(instructions) || instructions.length === 0) {
-        return res.status(400).json({ error: 'Instructions must be a non-empty array' });
+      if (
+        !instructions ||
+        !Array.isArray(instructions) ||
+        instructions.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'Instructions must be a non-empty array' });
       }
 
-      if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-        return res.status(400).json({ error: 'Ingredients must be a non-empty array' });
+      if (
+        !ingredients ||
+        !Array.isArray(ingredients) ||
+        ingredients.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'Ingredients must be a non-empty array' });
       }
 
       if (!Array.isArray(tags)) {
@@ -116,66 +145,75 @@ export class RecipeController {
         const recipe = await tx.recipe.create({
           data: {
             title,
-            instructions: Array.isArray(instructions) ? instructions.join('\n') : instructions,
+            instructions: Array.isArray(instructions)
+              ? instructions.join('\n')
+              : instructions,
             prepTime,
             cookTime,
             servings,
             difficulty: difficulty.toUpperCase(),
-            userId
-          }
+            userId,
+          },
         });
 
         // Add ingredients
-        await Promise.all(ingredients.map(async (ingredient) => {
-          const ingredientRecord = await tx.ingredient.upsert({
-            where: { name: ingredient.name },
-            create: { name: ingredient.name },
-            update: {}
-          });
+        await Promise.all(
+          ingredients.map(async (ingredient) => {
+            const ingredientRecord = await tx.ingredient.upsert({
+              where: { name: ingredient.name },
+              create: { name: ingredient.name },
+              update: {},
+            });
 
-          await tx.recipeIngredient.create({
-            data: {
-              recipeId: recipe.id,
-              ingredientId: ingredientRecord.id,
-              amount: ingredient.amount || '1',
-              unit: ingredient.unit || 'unit'
-            }
-          });
-        }));
+            await tx.recipeIngredient.create({
+              data: {
+                recipeId: recipe.id,
+                ingredientId: ingredientRecord.id,
+                amount: ingredient.amount || '1',
+                unit: ingredient.unit || 'unit',
+              },
+            });
+          }),
+        );
 
         // Add tags
-        await Promise.all(tags.map(async (tag) => {
-          const tagName = typeof tag === 'string' ? tag : tag.name;
-          const tagRecord = await tx.tag.upsert({
-            where: { name: tagName },
-            create: { name: tagName },
-            update: {}
-          });
+        await Promise.all(
+          tags.map(async (tag) => {
+            const tagName = typeof tag === 'string' ? tag : tag.name;
+            const tagRecord = await tx.tag.upsert({
+              where: { name: tagName },
+              create: { name: tagName },
+              update: {},
+            });
 
-          await tx.recipeTag.create({
-            data: {
-              recipeId: recipe.id,
-              tagId: tagRecord.id
-            }
-          });
-        }));
+            await tx.recipeTag.create({
+              data: {
+                recipeId: recipe.id,
+                tagId: tagRecord.id,
+              },
+            });
+          }),
+        );
 
         // Add categories
-        await Promise.all(categories.map(async (category) => {
-          const categoryName = typeof category === 'string' ? category : category.name;
-          const categoryRecord = await tx.category.upsert({
-            where: { name: categoryName },
-            create: { name: categoryName },
-            update: {}
-          });
+        await Promise.all(
+          categories.map(async (category) => {
+            const categoryName =
+              typeof category === 'string' ? category : category.name;
+            const categoryRecord = await tx.category.upsert({
+              where: { name: categoryName },
+              create: { name: categoryName },
+              update: {},
+            });
 
-          await tx.recipeCategory.create({
-            data: {
-              recipeId: recipe.id,
-              categoryId: categoryRecord.id
-            }
-          });
-        }));
+            await tx.recipeCategory.create({
+              data: {
+                recipeId: recipe.id,
+                categoryId: categoryRecord.id,
+              },
+            });
+          }),
+        );
 
         // Get the complete recipe
         return await tx.recipe.findUnique({
@@ -183,20 +221,20 @@ export class RecipeController {
           include: {
             ingredients: {
               include: {
-                ingredient: true
-              }
+                ingredient: true,
+              },
             },
             tags: {
               include: {
-                tag: true
-              }
+                tag: true,
+              },
             },
             categories: {
               include: {
-                category: true
-              }
-            }
-          }
+                category: true,
+              },
+            },
+          },
         });
       });
 
@@ -217,14 +255,26 @@ export class RecipeController {
 
       const recipes = await prisma.recipe.findMany({
         where: {
-          userId
+          userId,
         },
         include: {
-          ingredients: true,
-          tags: true,
-          categories: true,
-          user: true
-        }
+          ingredients: {
+            include: {
+              ingredient: true,
+            },
+          },
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+          user: true,
+        },
       });
 
       res.status(200).json(recipes);
@@ -246,26 +296,26 @@ export class RecipeController {
       const recipe = await prisma.recipe.findFirst({
         where: {
           id,
-          userId
+          userId,
         },
         include: {
           ingredients: {
             include: {
-              ingredient: true
-            }
+              ingredient: true,
+            },
           },
           tags: {
             include: {
-              tag: true
-            }
+              tag: true,
+            },
           },
           categories: {
             include: {
-              category: true
-            }
+              category: true,
+            },
           },
-          user: true
-        }
+          user: true,
+        },
       });
 
       if (!recipe) {
@@ -296,8 +346,8 @@ export class RecipeController {
       const existingRecipe = await prisma.recipe.findFirst({
         where: {
           id,
-          userId
-        }
+          userId,
+        },
       });
 
       if (!existingRecipe) {
@@ -316,32 +366,32 @@ export class RecipeController {
               ingredientId: {
                 connectOrCreate: {
                   where: { name: ingredient },
-                  create: { name: ingredient }
-                }
-              }
-            }))
+                  create: { name: ingredient },
+                },
+              },
+            })),
           },
           tags: {
             set: [],
             connectOrCreate: tags.map((tag: string) => ({
               where: { name: tag },
-              create: { name: tag }
-            }))
+              create: { name: tag },
+            })),
           },
           categories: {
             set: [],
             connectOrCreate: categories.map((category: string) => ({
               where: { name: category },
-              create: { name: category }
-            }))
-          }
+              create: { name: category },
+            })),
+          },
         },
         include: {
           ingredients: true,
           tags: true,
           categories: true,
-          user: true
-        }
+          user: true,
+        },
       });
 
       res.status(200).json(updatedRecipe);
@@ -360,25 +410,41 @@ export class RecipeController {
         return res.status(401).json({ error: 'User not authenticated' });
       }
 
-      // First verify the recipe belongs to the user
+      // Check if recipe exists and belongs to user
       const recipe = await prisma.recipe.findFirst({
         where: {
-          id,
-          userId
-        }
+          id: id,
+          userId,
+        },
       });
 
       if (!recipe) {
         return res.status(404).json({ error: 'Recipe not found' });
       }
 
-      await prisma.recipe.delete({
-        where: { id }
-      });
+      // Delete recipe and all related records
+      await prisma.$transaction([
+        // Delete recipe ingredients
+        prisma.recipeIngredient.deleteMany({
+          where: { recipeId: id },
+        }),
+        // Delete recipe tags
+        prisma.recipeTag.deleteMany({
+          where: { recipeId: id },
+        }),
+        // Delete recipe categories
+        prisma.recipeCategory.deleteMany({
+          where: { recipeId: id },
+        }),
+        // Delete the recipe itself
+        prisma.recipe.delete({
+          where: { id: id },
+        }),
+      ]);
 
       res.status(204).send();
     } catch (error) {
-      console.error('Error deleting recipe:', error);
+      console.error('Delete Recipe Error:', error);
       res.status(500).json({ error: 'Failed to delete recipe' });
     }
   }
@@ -405,7 +471,7 @@ export class RecipeController {
       }
 
       const categoryRecord = await prisma.category.findUnique({
-        where: { name: category }
+        where: { name: category },
       });
 
       if (!categoryRecord) {
@@ -417,16 +483,16 @@ export class RecipeController {
           userId,
           categories: {
             some: {
-              categoryId: categoryRecord.id
-            }
-          }
+              categoryId: categoryRecord.id,
+            },
+          },
         },
         include: {
           ingredients: true,
           tags: true,
           categories: true,
-          user: true
-        }
+          user: true,
+        },
       });
 
       return res.status(200).json(recipes);
@@ -455,10 +521,10 @@ export class RecipeController {
       }
 
       const existingRecipe = await prisma.recipe.findFirst({
-        where: { 
+        where: {
           id,
-          userId
-        }
+          userId,
+        },
       });
 
       if (!existingRecipe) {
@@ -470,7 +536,7 @@ export class RecipeController {
         return prisma.category.upsert({
           where: { name: categoryName },
           create: { name: categoryName },
-          update: {}
+          update: {},
         });
       });
 
@@ -482,31 +548,33 @@ export class RecipeController {
         data: {
           categories: {
             deleteMany: {},
-            connectOrCreate: createdCategories.map(category => ({
+            connectOrCreate: createdCategories.map((category) => ({
               where: {
                 recipeId_categoryId: {
                   recipeId: id,
-                  categoryId: category.id
-                }
+                  categoryId: category.id,
+                },
               },
               create: {
-                categoryId: category.id
-              }
-            }))
-          }
+                categoryId: category.id,
+              },
+            })),
+          },
         },
         include: {
           ingredients: true,
           tags: true,
           categories: true,
-          user: true
-        }
+          user: true,
+        },
       });
 
       return res.status(200).json(recipe);
     } catch (error) {
       console.error('Recipe Category Update Error:', error);
-      return res.status(500).json({ error: 'Failed to update recipe categories' });
+      return res
+        .status(500)
+        .json({ error: 'Failed to update recipe categories' });
     }
   }
 
@@ -525,51 +593,55 @@ export class RecipeController {
         where: {
           userId,
           title: {
-            equals: recipe.title?.toLowerCase()
-          }
-        }
+            equals: recipe.title?.toLowerCase(),
+          },
+        },
       });
 
       if (existingRecipe) {
         return res.status(409).json({
           error: 'Recipe with this title already exists',
-          existingRecipe
+          existingRecipe,
         });
       }
 
       // Format the recipe for database storage
       const recipeData = {
         title: recipe.title,
-        instructions: Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions,
-        prepTime: recipe.prepTime || "0",
-        cookTime: recipe.cookTime || "0",
-        servings: recipe.servings || "1",
+        instructions: Array.isArray(recipe.instructions)
+          ? recipe.instructions.join('\n')
+          : recipe.instructions,
+        prepTime: recipe.prepTime || '0',
+        cookTime: recipe.cookTime || '0',
+        servings: recipe.servings || '1',
         difficulty: recipe.difficulty.toUpperCase(),
         user: {
-          connect: { id: userId }
+          connect: { id: userId },
         },
         ingredients: {
-          create: recipe.ingredients.map((ingredient: { name: string; amount: string; unit: string }) => ({
-            amount: ingredient.amount,
-            unit: ingredient.unit,
-            ingredient: {
-              connectOrCreate: {
-                where: { name: ingredient.name },
-                create: { name: ingredient.name }
-              }
-            }
-          }))
+          create: recipe.ingredients.map(
+            (ingredient: { name: string; amount: string; unit: string }) => ({
+              amount: ingredient.amount,
+              unit: ingredient.unit,
+              ingredient: {
+                connectOrCreate: {
+                  where: { name: ingredient.name },
+                  create: { name: ingredient.name },
+                },
+              },
+            }),
+          ),
         },
         tags: {
           create: recipe.tags.map((tagName: string) => ({
             tag: {
               connectOrCreate: {
                 where: { name: tagName },
-                create: { name: tagName }
-              }
-            }
-          }))
-        }
+                create: { name: tagName },
+              },
+            },
+          })),
+        },
       };
 
       // Create the recipe
@@ -578,24 +650,25 @@ export class RecipeController {
         include: {
           ingredients: {
             include: {
-              ingredient: true
-            }
+              ingredient: true,
+            },
           },
           tags: {
             include: {
-              tag: true
-            }
+              tag: true,
+            },
           },
           categories: true,
-          user: true
-        }
+          user: true,
+        },
       });
 
       return res.status(201).json(result);
     } catch (error) {
       console.error('Recipe Save Error:', error);
-      return res.status(500).json({ error: 'Failed to save recipe', rawError: error });
+      return res
+        .status(500)
+        .json({ error: 'Failed to save recipe', rawError: error });
     }
   }
-} 
-
+}

@@ -42,17 +42,20 @@ interface RecipeDetailProps {
 
 export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe }) => {
   // Split instructions into array if it's a string
-  const instructionsList = typeof recipe.instructions === 'string' 
-    ? recipe.instructions.split('\n').filter(i => i.trim() !== '')
-    : Array.isArray(recipe.instructions) 
-      ? recipe.instructions 
-      : [];
+  const instructionsList =
+    typeof recipe.instructions === 'string'
+      ? recipe.instructions.split('\n').filter((i) => i.trim() !== '')
+      : Array.isArray(recipe.instructions)
+        ? recipe.instructions
+        : [];
 
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
       {/* Recipe Header */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{recipe.title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {recipe.title}
+        </h1>
         <div className="flex flex-wrap gap-2 mb-4">
           {recipe.tags.map((tag) => (
             <span
@@ -66,22 +69,18 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe }) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
           <div>
             <span className="font-medium">Prep Time:</span>
-            <br />
             {recipe.prepTime}
           </div>
           <div>
             <span className="font-medium">Cook Time:</span>
-            <br />
             {recipe.cookTime}
           </div>
           <div>
             <span className="font-medium">Servings:</span>
-            <br />
             {recipe.servings}
           </div>
           <div>
             <span className="font-medium">Difficulty:</span>
-            <br />
             {recipe.difficulty}
           </div>
         </div>
@@ -96,7 +95,8 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe }) => {
             {recipe.ingredients.map((ingredient, index) => (
               <li key={ingredient.ingredient.id} className="flex items-start">
                 <span>
-                  {ingredient.amount} {ingredient.unit} {ingredient.ingredient.name}
+                  {ingredient.amount} {ingredient.unit}{' '}
+                  {ingredient.ingredient.name}
                 </span>
               </li>
             ))}
@@ -137,4 +137,4 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe }) => {
       )}
     </div>
   );
-}; 
+};

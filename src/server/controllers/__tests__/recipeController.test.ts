@@ -9,8 +9,8 @@ const mockGenerateRecipe = jest.fn();
 
 jest.mock('../../services/ai/vertex', () => ({
   VertexAIService: jest.fn().mockImplementation(() => ({
-    generateRecipe: mockGenerateRecipe
-  }))
+    generateRecipe: mockGenerateRecipe,
+  })),
 }));
 
 // Mock Prisma
@@ -28,29 +28,54 @@ jest.mock('@prisma/client', () => {
     recipe: mockPrismaRecipe,
     category: {
       findUnique: jest.fn(),
-      upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
+      upsert: jest
+        .fn()
+        .mockImplementation((data) =>
+          Promise.resolve({ id: '1', name: data.create.name }),
+        ),
     },
     ingredient: {
-      upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name })),
-      connectOrCreate: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
+      upsert: jest
+        .fn()
+        .mockImplementation((data) =>
+          Promise.resolve({ id: '1', name: data.create.name }),
+        ),
+      connectOrCreate: jest
+        .fn()
+        .mockImplementation((data) =>
+          Promise.resolve({ id: '1', name: data.create.name }),
+        ),
     },
     tag: {
-      upsert: jest.fn().mockImplementation((data) => Promise.resolve({ id: '1', name: data.create.name }))
+      upsert: jest
+        .fn()
+        .mockImplementation((data) =>
+          Promise.resolve({ id: '1', name: data.create.name }),
+        ),
     },
     recipeIngredient: {
-      create: jest.fn().mockResolvedValue({ id: '1' })
+      create: jest.fn().mockResolvedValue({ id: '1' }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     recipeTag: {
-      create: jest.fn().mockResolvedValue({ id: '1' })
+      create: jest.fn().mockResolvedValue({ id: '1' }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     recipeCategory: {
-      create: jest.fn().mockResolvedValue({ id: '1' })
+      create: jest.fn().mockResolvedValue({ id: '1' }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     $disconnect: jest.fn(),
-    $transaction: jest.fn().mockImplementation(async (fn) => {
-      const result = await fn(mockPrisma);
-      return result;
-    })
+    $transaction: jest.fn().mockImplementation(async (arg) => {
+      if (typeof arg === 'function') {
+        return await arg(mockPrisma);
+      }
+      // If it's an array of operations, execute them in sequence
+      if (Array.isArray(arg)) {
+        return await Promise.all(arg);
+      }
+      return arg;
+    }),
   };
 
   return { PrismaClient: jest.fn(() => mockPrisma) };
@@ -79,12 +104,15 @@ type MockPrismaClient = {
   };
   recipeIngredient: {
     create: jest.Mock;
+    deleteMany: jest.Mock;
   };
   recipeTag: {
     create: jest.Mock;
+    deleteMany: jest.Mock;
   };
   recipeCategory: {
     create: jest.Mock;
+    deleteMany: jest.Mock;
   };
 };
 
@@ -105,25 +133,25 @@ describe('RecipeController', () => {
         responseObject = result;
         return mockResponse;
       }),
-      send: jest.fn()
+      send: jest.fn(),
     };
 
     mockRequest = {
       body: {},
       user: { id: '1', email: 'test@example.com' },
-      params: {}
+      params: {},
     };
 
     // Setup default successful response
     mockGenerateRecipe.mockResolvedValue({
-      title: "Test Recipe",
-      ingredients: ["ingredient 1", "ingredient 2"],
-      instructions: ["step 1", "step 2"],
-      prepTime: "30 minutes",
-      cookTime: "45 minutes",
+      title: 'Test Recipe',
+      ingredients: ['ingredient 1', 'ingredient 2'],
+      instructions: ['step 1', 'step 2'],
+      prepTime: '30 minutes',
+      cookTime: '45 minutes',
       servings: 4,
-      difficulty: "medium",
-      tags: ["test", "mock"]
+      difficulty: 'medium',
+      tags: ['test', 'mock'],
     });
 
     recipeController = new RecipeController();
@@ -136,25 +164,27 @@ describe('RecipeController', () => {
         dietary: ['gluten-free'],
         cuisine: 'Asian',
         mealType: 'dinner',
-        difficulty: 'medium'
+        difficulty: 'medium',
       };
 
       await recipeController.generateRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(responseObject.preview).toEqual(expect.objectContaining({
-        title: expect.any(String),
-        ingredients: expect.any(Array),
-        instructions: expect.any(Array),
-        prepTime: expect.any(String),
-        cookTime: expect.any(String),
-        servings: expect.any(String),
-        difficulty: expect.any(String),
-        tags: expect.any(Array)
-      }));
+      expect(responseObject.preview).toEqual(
+        expect.objectContaining({
+          title: expect.any(String),
+          ingredients: expect.any(Array),
+          instructions: expect.any(Array),
+          prepTime: expect.any(String),
+          cookTime: expect.any(String),
+          servings: expect.any(String),
+          difficulty: expect.any(String),
+          tags: expect.any(Array),
+        }),
+      );
     });
 
     it('should return 400 if prompt is empty', async () => {
@@ -162,18 +192,18 @@ describe('RecipeController', () => {
 
       await recipeController.generateRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(responseObject).toEqual({
-        error: 'Recipe prompt is required'
+        error: 'Recipe prompt is required',
       });
     });
 
     it('should handle AI service errors', async () => {
       mockRequest.body = {
-        ingredients: ['chicken']
+        ingredients: ['chicken'],
       };
 
       // Override the default mock for this test only
@@ -181,23 +211,23 @@ describe('RecipeController', () => {
 
       await recipeController.generateRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(responseObject).toEqual({
-        error: 'Failed to generate recipe'
+        error: 'Failed to generate recipe',
       });
     });
 
     it('should accept minimal recipe prompt', async () => {
       mockRequest.body = {
-        ingredients: ['chicken']
+        ingredients: ['chicken'],
       };
 
       await recipeController.generateRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -211,12 +241,12 @@ describe('RecipeController', () => {
         dietary: ['gluten-free'],
         cuisine: 'Asian',
         mealType: 'dinner',
-        difficulty: 'medium'
+        difficulty: 'medium',
       };
 
       await recipeController.generateRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -232,14 +262,14 @@ describe('RecipeController', () => {
       title: 'Test Recipe',
       ingredients: [
         { name: 'ingredient 1', amount: '1', unit: 'unit' },
-        { name: 'ingredient 2', amount: '1', unit: 'unit' }
+        { name: 'ingredient 2', amount: '1', unit: 'unit' },
       ],
       instructions: ['step 1', 'step 2'],
       prepTime: '30 minutes',
       cookTime: '45 minutes',
       servings: 4,
       difficulty: 'medium',
-      tags: ['test', 'mock']
+      tags: ['test', 'mock'],
     };
 
     it('should create a recipe successfully', async () => {
@@ -249,12 +279,12 @@ describe('RecipeController', () => {
         id: '1',
         userId: '1',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
       await recipeController.createRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -266,7 +296,7 @@ describe('RecipeController', () => {
 
       await recipeController.createRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
@@ -279,12 +309,12 @@ describe('RecipeController', () => {
 
       await recipeController.createRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(responseObject).toEqual({
-        error: 'User not authenticated'
+        error: 'User not authenticated',
       });
     });
   });
@@ -297,15 +327,15 @@ describe('RecipeController', () => {
           title: 'Recipe 1',
           userId: '1',
           ingredients: [],
-          tags: []
-        }
+          tags: [],
+        },
       ];
 
       prisma.recipe.findMany.mockResolvedValueOnce(mockRecipes);
 
       await recipeController.getRecipes(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -320,7 +350,7 @@ describe('RecipeController', () => {
         title: 'Recipe 1',
         userId: '1',
         ingredients: [],
-        tags: []
+        tags: [],
       };
 
       mockRequest.params = { id: '1' };
@@ -328,7 +358,7 @@ describe('RecipeController', () => {
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -341,7 +371,7 @@ describe('RecipeController', () => {
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(404);
@@ -352,12 +382,12 @@ describe('RecipeController', () => {
       mockRequest.user = { id: '2', email: 'other@example.com' };
       prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
-        userId: '1'
+        userId: '1',
       });
 
       await recipeController.getRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(403);
@@ -374,32 +404,35 @@ describe('RecipeController', () => {
       servings: 2,
       difficulty: 'easy',
       tags: ['updated'],
-      categories: ['Dinner']
+      categories: ['Dinner'],
     };
 
     it('should update a recipe successfully', async () => {
       mockRequest.params = { id: '1' };
       mockRequest.body = updateData;
-      
+
       prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
-        userId: '1'
+        userId: '1',
       });
 
       prisma.category.upsert.mockResolvedValueOnce({ id: '1', name: 'Dinner' });
-      prisma.ingredient.connectOrCreate.mockResolvedValueOnce({ id: '1', name: 'new ingredient' });
-      
+      prisma.ingredient.connectOrCreate.mockResolvedValueOnce({
+        id: '1',
+        name: 'new ingredient',
+      });
+
       prisma.recipe.update.mockResolvedValueOnce({
         ...updateData,
         id: '1',
         userId: '1',
         categories: [{ name: 'Dinner' }],
-        ingredients: [{ id: '1', name: 'new ingredient', amount: '1' }]
+        ingredients: [{ id: '1', name: 'new ingredient', amount: '1' }],
       });
 
       await recipeController.updateRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -409,20 +442,25 @@ describe('RecipeController', () => {
   describe('deleteRecipe', () => {
     it('should delete a recipe successfully', async () => {
       mockRequest.params = { id: '1' };
-      
+
       prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
-        userId: '1'
+        userId: '1',
       });
+
+      prisma.recipe.delete.mockResolvedValueOnce({ id: '1' });
+      prisma.recipeIngredient.deleteMany.mockResolvedValueOnce({ count: 1 });
+      prisma.recipeTag.deleteMany.mockResolvedValueOnce({ count: 1 });
+      prisma.recipeCategory.deleteMany.mockResolvedValueOnce({ count: 1 });
 
       await recipeController.deleteRecipe(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(204);
       expect(prisma.recipe.delete).toHaveBeenCalledWith({
-        where: { id: '1' }
+        where: { id: '1' },
       });
     });
   });
@@ -431,7 +469,7 @@ describe('RecipeController', () => {
     it('should return all predefined categories', async () => {
       await recipeController.getCategories(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -447,16 +485,19 @@ describe('RecipeController', () => {
           id: '1',
           title: 'Recipe 1',
           userId: '1',
-          categories: [{ name: 'Dinner' }]
-        }
+          categories: [{ name: 'Dinner' }],
+        },
       ];
 
-      prisma.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Dinner' });
+      prisma.category.findUnique.mockResolvedValueOnce({
+        id: '1',
+        name: 'Dinner',
+      });
       prisma.recipe.findMany.mockResolvedValueOnce(mockRecipes);
 
       await recipeController.getRecipesByCategory(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -468,7 +509,7 @@ describe('RecipeController', () => {
 
       await recipeController.getRecipesByCategory(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
@@ -482,21 +523,18 @@ describe('RecipeController', () => {
 
       prisma.recipe.findFirst.mockResolvedValueOnce({
         id: '1',
-        userId: '1'
+        userId: '1',
       });
 
       prisma.recipe.update.mockResolvedValueOnce({
         id: '1',
         userId: '1',
-        categories: [
-          { name: 'Dinner' },
-          { name: 'Italian' }
-        ]
+        categories: [{ name: 'Dinner' }, { name: 'Italian' }],
       });
 
       await recipeController.updateRecipeCategories(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
       expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
@@ -507,10 +545,10 @@ describe('RecipeController', () => {
 
       await recipeController.updateRecipeCategories(
         mockRequest as AuthRequest,
-        mockResponse as Response
+        mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
     });
   });
-}); 
+});
