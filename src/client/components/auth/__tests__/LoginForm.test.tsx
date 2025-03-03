@@ -21,39 +21,41 @@ describe('LoginForm', () => {
         <BrowserRouter>
           <LoginForm />
         </BrowserRouter>
-      </AuthProvider>
+      </AuthProvider>,
     );
   };
 
   it('renders login form with all fields', () => {
     renderComponent();
-    
+
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Sign in/i }),
+    ).toBeInTheDocument();
   });
 
   it('submits form with valid data and redirects on success', async () => {
     const mockToken = 'fake-token';
-    const mockFetch = jest.fn(() => 
+    const mockFetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ token: mockToken }),
-      })
+      }),
     );
     global.fetch = mockFetch as any;
-    
+
     renderComponent();
-    
+
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'test@example.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
       target: { value: 'password123' },
     });
-    
+
     fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
-    
+
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/users/login', {
         method: 'POST',
@@ -71,25 +73,25 @@ describe('LoginForm', () => {
   });
 
   it('shows error message on login failure', async () => {
-    const mockFetch = jest.fn(() => 
+    const mockFetch = jest.fn(() =>
       Promise.resolve({
         ok: false,
         json: () => Promise.resolve({ error: 'Invalid credentials' }),
-      })
+      }),
     );
     global.fetch = mockFetch as any;
-    
+
     renderComponent();
-    
+
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'test@example.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
       target: { value: 'wrongpassword' },
     });
-    
+
     fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
-    
+
     expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
   });
 
@@ -113,6 +115,8 @@ describe('LoginForm', () => {
 
   it('renders submit button', () => {
     renderComponent();
-    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Sign in/i }),
+    ).toBeInTheDocument();
   });
-}); 
+});
