@@ -25,7 +25,7 @@ describe('LoginForm', () => {
     );
   };
 
-  it('renders login form with all fields', () => {
+  it('renders login form with all fields and register link', () => {
     renderComponent();
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -33,6 +33,10 @@ describe('LoginForm', () => {
     expect(
       screen.getByRole('button', { name: /Sign in/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/don't have an account\?/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /register here/i }),
+    ).toHaveAttribute('href', '/register');
   });
 
   it('submits form with valid data and redirects on success', async () => {
