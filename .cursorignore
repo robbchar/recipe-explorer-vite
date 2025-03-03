@@ -1,0 +1,10 @@
+node_modules/.cache
+node_modules/@prisma/engines
+node_modules/.vite
+dist
+build
+coverage
+*.log
+.env
+.env.*
+!.env.example 
