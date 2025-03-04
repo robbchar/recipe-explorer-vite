@@ -7,4 +7,12 @@ export interface RecipeData {
   servings: number;
   difficulty: string;
   tags: string[];
-} 
+}
+
+export interface RecipePrompt {
+  ingredients?: string[];
+  dietary?: string[];
+  cuisine?: string;
+  mealType?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}

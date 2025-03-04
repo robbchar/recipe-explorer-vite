@@ -1,6 +1,4 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma';
-import { Prisma } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { RecipeController } from '../controllers/recipeController';
 
@@ -60,4 +58,4 @@ router.put('/:id/categories', async (req: AuthRequest, res) => {
   await recipeController.updateRecipeCategories(req, res);
 });
 
-export default router; 
+export default router;

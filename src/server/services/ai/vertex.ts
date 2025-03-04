@@ -1,5 +1,5 @@
 import { VertexAI } from '@google-cloud/vertexai';
-import { RecipePrompt, Recipe } from './types';
+import { RecipePrompt, RecipeData } from '../../types/recipe';
 import { config } from '../../config/env';
 
 // Initialize Vertex AI
@@ -37,11 +37,11 @@ export class VertexAIService {
       Important: Each ingredient MUST follow the format "AMOUNT UNIT NAME" (e.g., "2 cups flour", "1 tablespoon sugar", "3 whole eggs", "1/2 teaspoon salt").`;
   }
 
-  async generateRecipe(prompt: RecipePrompt): Promise<Recipe> {
+  async generateRecipe(prompt: RecipePrompt): Promise<RecipeData> {
     try {
       const result = await model.generateContent({
         contents: [
-          { role: 'user', parts: [{ text: this.generatePrompt(prompt) }] }
+          { role: 'user', parts: [{ text: this.generatePrompt(prompt) }] },
         ],
         generationConfig: {
           temperature: 0.7,
@@ -55,10 +55,12 @@ export class VertexAIService {
         throw new Error('No response from AI');
       }
 
-      return JSON.parse(response.candidates[0].content.parts[0].text) as Recipe;
+      return JSON.parse(
+        response.candidates[0].content.parts[0].text,
+      ) as RecipeData;
     } catch (error) {
       // console.error('AI Recipe Generation Error:', error);
       throw new Error('Failed to generate recipe');
     }
   }
-} 
+}

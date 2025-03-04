@@ -1,6 +1,6 @@
-import express from "express";
+import express from 'express';
 import cors from 'cors';
-import ViteExpress from "vite-express";
+import ViteExpress from 'vite-express';
 import { config, validateEnv } from './config/env';
 import authRoutes from './routes/authRoutes';
 import recipeRoutes from './routes/recipes';
@@ -23,10 +23,6 @@ app.use('/api/recipes', authenticateToken, recipeRoutes);
 
 // Use auth routes
 app.use('/api/auth', authRoutes);
-
-app.get("/hello", (_, res) => {
-  res.send("Hello Vite + React + TypeScript!");
-});
 
 ViteExpress.listen(app, config.port, () =>
   console.log(`Server is listening on port ${config.port}...`),

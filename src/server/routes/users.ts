@@ -13,7 +13,7 @@ router.post('/register', async (req, res) => {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (existingUser) {
@@ -28,22 +28,20 @@ router.post('/register', async (req, res) => {
       data: {
         email,
         password: hashedPassword,
-        name
+        name,
       },
       select: {
         id: true,
         email: true,
         name: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: '24h',
+    });
 
     res.status(201).json({ user, token });
   } catch (error) {
@@ -59,7 +57,7 @@ router.post('/login', async (req, res) => {
 
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (!user) {
@@ -69,20 +67,17 @@ router.post('/login', async (req, res) => {
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid password' });
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: '24h',
+    });
 
     // Return user data without password
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword, token });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
@@ -108,8 +103,8 @@ router.get('/me', async (req, res) => {
         id: true,
         email: true,
         name: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
 
     if (!user) {
@@ -141,4 +136,4 @@ router.get('/verify', (req, res) => {
   }
 });
 
-export default router; 
+export default router;
