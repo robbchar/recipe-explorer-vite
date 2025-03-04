@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RecipeDetail } from '../components/recipe/RecipeDetail';
 import { useAuth } from '../context/AuthContext';
+import useApi from '../hooks/useApi';
 
 const RecipeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -10,13 +11,13 @@ const RecipeDetailPage: React.FC = () => {
   const [recipe, setRecipe] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const api = useApi();
 
   React.useEffect(() => {
     const fetchRecipe = async () => {
       try {
-        console.log('Fetching recipe with ID:', id);
         const token = localStorage.getItem('token');
-        
+
         if (!token) {
           console.log('No token found');
           logout();
@@ -24,26 +25,14 @@ const RecipeDetailPage: React.FC = () => {
           throw new Error('Not authenticated');
         }
 
+        console.log('Fetching recipe with ID:', id);
+
         console.log('Making API request...');
-        const response = await fetch(`/api/recipes/${id}`, {
+        const data = await api(`/recipes/${id}`, {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
-
-        console.log('API Response:', response.status);
-        const data = await response.json();
-        console.log('Recipe data:', data);
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            console.log('Unauthorized access');
-            logout();
-            navigate('/login');
-            throw new Error('Session expired. Please login again.');
-          }
-          throw new Error(data.error || 'Recipe not found');
-        }
 
         setRecipe(data);
       } catch (err) {
@@ -122,4 +111,4 @@ const RecipeDetailPage: React.FC = () => {
   );
 };
 
-export default RecipeDetailPage; 
+export default RecipeDetailPage;

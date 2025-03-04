@@ -20,7 +20,7 @@ const DIETARY_OPTIONS = [
   'Dairy-Free',
   'Keto',
   'Low-Carb',
-  'Paleo'
+  'Paleo',
 ] as const;
 
 const CUISINE_TYPES = [
@@ -32,7 +32,7 @@ const CUISINE_TYPES = [
   'Mediterranean',
   'American',
   'French',
-  'Thai'
+  'Thai',
 ] as const;
 
 const MEAL_TYPES = [
@@ -40,16 +40,15 @@ const MEAL_TYPES = [
   'Lunch',
   'Dinner',
   'Snack',
-  'Dessert'
+  'Dessert',
 ] as const;
 
-const DIFFICULTY_LEVELS = [
-  'Easy',
-  'Medium',
-  'Hard'
-] as const;
+const DIFFICULTY_LEVELS = ['Easy', 'Medium', 'Hard'] as const;
 
-export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, isLoading = false }) => {
+export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({
+  onSubmit,
+  isLoading = false,
+}) => {
   const [ingredients, setIngredients] = useState<string>('');
   const [dietary, setDietary] = useState<string[]>([]);
   const [cuisine, setCuisine] = useState<string>('');
@@ -59,26 +58,32 @@ export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, is
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      ingredients: ingredients.split(',').map(i => i.trim()),
+      ingredients: ingredients.split(',').map((i) => i.trim()),
       dietary,
       cuisine,
       mealType,
-      difficulty
+      difficulty,
     });
   };
 
   const handleDietaryChange = (option: string) => {
-    setDietary(prev => 
+    setDietary((prev) =>
       prev.includes(option)
-        ? prev.filter(item => item !== option)
-        : [...prev, option]
+        ? prev.filter((item) => item !== option)
+        : [...prev, option],
     );
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 max-w-2xl mx-auto p-6 bg-white rounded-lg shadow"
+    >
       <div>
-        <label htmlFor="ingredients" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="ingredients"
+          className="block text-sm font-medium text-gray-700"
+        >
           Ingredients
         </label>
         <input
@@ -112,7 +117,10 @@ export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, is
       </div>
 
       <div>
-        <label htmlFor="cuisine" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="cuisine"
+          className="block text-sm font-medium text-gray-700"
+        >
           Cuisine Type
         </label>
         <select
@@ -123,13 +131,18 @@ export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, is
         >
           <option value="">Select cuisine</option>
           {CUISINE_TYPES.map((type) => (
-            <option key={type} value={type}>{type}</option>
+            <option key={type} value={type}>
+              {type}
+            </option>
           ))}
         </select>
       </div>
 
       <div>
-        <label htmlFor="mealType" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="mealType"
+          className="block text-sm font-medium text-gray-700"
+        >
           Meal Type
         </label>
         <select
@@ -140,13 +153,18 @@ export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, is
         >
           <option value="">Select meal type</option>
           {MEAL_TYPES.map((type) => (
-            <option key={type} value={type}>{type}</option>
+            <option key={type} value={type}>
+              {type}
+            </option>
           ))}
         </select>
       </div>
 
       <div>
-        <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="difficulty"
+          className="block text-sm font-medium text-gray-700"
+        >
           Difficulty Level
         </label>
         <select
@@ -157,7 +175,9 @@ export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, is
         >
           <option value="">Select difficulty</option>
           {DIFFICULTY_LEVELS.map((level) => (
-            <option key={level} value={level}>{level}</option>
+            <option key={level} value={level}>
+              {level}
+            </option>
           ))}
         </select>
       </div>
@@ -171,4 +191,4 @@ export const RecipePromptForm: React.FC<RecipePromptFormProps> = ({ onSubmit, is
       </button>
     </form>
   );
-}; 
+};

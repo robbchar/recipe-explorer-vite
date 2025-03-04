@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useApi from '../../hooks/useApi';
 
 interface Recipe {
   id: string;
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const api = useApi();
 
   const fetchRecipes = async () => {
     try {
@@ -30,18 +32,13 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch('/api/recipes', {
+      const reecipes = await api<Recipe[]>('/recipes', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch recipes');
-      }
-
-      const data = await response.json();
-      setRecipes(data);
+      setRecipes(reecipes);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load recipes');
     } finally {
@@ -75,16 +72,12 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch(`/api/recipes/${recipeId}`, {
+      await api(`/recipes/${recipeId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete recipe');
-      }
 
       // Refresh the recipes list
       await fetchRecipes();
