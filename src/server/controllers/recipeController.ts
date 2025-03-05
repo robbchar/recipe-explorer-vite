@@ -65,7 +65,7 @@ export class RecipeController {
         return res.status(409).json({
           error: 'Recipe with this title already exists',
           existingRecipe,
-          preview: aiRecipe,
+          previewRecipe: aiRecipe,
         });
       }
 
@@ -80,7 +80,7 @@ export class RecipeController {
         isPreview: true,
       };
 
-      return res.status(200).json({ preview: recipePreview });
+      return res.status(200).json({ previewRecipe: recipePreview });
     } catch (error) {
       console.error('Recipe Generation Error:', error);
       return res.status(500).json({ error: 'Failed to generate recipe' });

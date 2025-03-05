@@ -28,13 +28,17 @@ const RecipeDetailPage: React.FC = () => {
         console.log('Fetching recipe with ID:', id);
 
         console.log('Making API request...');
-        const data = await api(`/recipes/${id}`, {
+        const response = await api(`/recipes/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        setRecipe(data);
+        if (response.status !== 200) {
+          throw new Error('Failed to load recipe');
+        }
+
+        setRecipe(await response.json());
       } catch (err) {
         console.error('Error fetching recipe:', err);
         setError(err instanceof Error ? err.message : 'Failed to load recipe');

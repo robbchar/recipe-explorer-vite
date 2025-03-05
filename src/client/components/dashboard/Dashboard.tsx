@@ -32,13 +32,13 @@ const Dashboard = () => {
         return;
       }
 
-      const reecipes = await api<Recipe[]>('/recipes', {
+      const response = await api('/recipes', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setRecipes(reecipes);
+      setRecipes(await response.json());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load recipes');
     } finally {

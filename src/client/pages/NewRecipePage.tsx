@@ -1,8 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RecipePromptForm, RecipePromptFormData } from '../components/recipe/RecipePromptForm';
+import {
+  RecipePromptForm,
+  RecipePromptFormData,
+} from '../components/recipe/RecipePromptForm';
 import { RecipePreview } from '../components/recipe/RecipePreview';
 import { useAuth } from '../context/AuthContext';
+import useApi from '../hooks/useApi';
 
 const NewRecipePage: React.FC = () => {
   const navigate = useNavigate();
@@ -10,46 +14,42 @@ const NewRecipePage: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [previewRecipe, setPreviewRecipe] = React.useState<any>(null);
   const [existingRecipe, setExistingRecipe] = React.useState<any>(null);
+  const api = useApi();
 
   const handleSubmit = async (data: RecipePromptFormData) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         logout();
         navigate('/login');
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/recipes/generate', {
+      const response = await api('/recipes/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
 
       const responseData = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          logout();
-          navigate('/login');
-          throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(responseData.error || 'Failed to generate recipe');
-      }
-
       if (response.status === 409) {
+        alert('Recipe with this title already exists');
         setExistingRecipe(responseData.existingRecipe);
+      } else {
+        setPreviewRecipe(responseData.previewRecipe);
       }
-
-      setPreviewRecipe(responseData.preview);
     } catch (error) {
       console.error('Error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to generate recipe. Please try again.');
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate recipe. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -59,29 +59,24 @@ const NewRecipePage: React.FC = () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         logout();
         navigate('/login');
         throw new Error('Not authenticated');
       }
 
-      const saveResponse = await fetch('/api/recipes/save', {
+      const saveResponse = await api('/recipes/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(recipe),
       });
 
       if (!saveResponse.ok) {
         const errorData = await saveResponse.json();
-        if (saveResponse.status === 401) {
-          logout();
-          navigate('/login');
-          throw new Error('Session expired. Please login again.');
-        }
         if (saveResponse.status === 409) {
           setExistingRecipe(errorData.existingRecipe);
           throw new Error('Recipe with this title already exists');
@@ -93,7 +88,11 @@ const NewRecipePage: React.FC = () => {
       navigate(`/recipes/${savedRecipe.id}`);
     } catch (error) {
       console.error('Error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save recipe. Please try again.');
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to save recipe. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +110,7 @@ const NewRecipePage: React.FC = () => {
         <RecipePromptForm onSubmit={handleSubmit} isLoading={isLoading} />
       ) : (
         <RecipePreview
-          recipe={previewRecipe}
+          previewRecipe={previewRecipe}
           existingRecipe={existingRecipe}
           onSave={handleSaveRecipe}
           onGenerateNew={handleGenerateNew}
@@ -122,4 +121,4 @@ const NewRecipePage: React.FC = () => {
   );
 };
 
-export default NewRecipePage; 
+export default NewRecipePage;

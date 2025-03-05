@@ -1,58 +1,38 @@
 import React, { useState } from 'react';
-
-interface Ingredient {
-  name: string;
-  amount: string;
-  unit: string;
-}
-
-interface RecipePreview {
-  title: string;
-  instructions: string[];
-  ingredients: Ingredient[];
-  prepTime: string;
-  cookTime: string;
-  servings: string;
-  difficulty: string;
-  tags: string[];
-}
-
-interface RecipePreviewProps {
-  recipe: RecipePreview;
-  onSave: (recipe: RecipePreview) => void;
-  onGenerateNew: () => void;
-  existingRecipe?: RecipePreview;
-  isLoading?: boolean;
-}
+import { RecipePreviewProps, Ingredient, Recipe } from '../../types/recipe';
 
 export const RecipePreview: React.FC<RecipePreviewProps> = ({
-  recipe,
+  previewRecipe,
   onSave,
   onGenerateNew,
   existingRecipe,
-  isLoading = false
+  isLoading = false,
 }) => {
-  const [editedRecipe, setEditedRecipe] = useState<RecipePreview>(recipe);
+  const [editedRecipe, setEditedRecipe] = useState<Recipe>(previewRecipe);
 
-  const handleChange = (field: keyof RecipePreview, value: any) => {
-    setEditedRecipe(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field: keyof Recipe, value: any) => {
+    setEditedRecipe((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleIngredientChange = (index: number, field: keyof Ingredient, value: string) => {
-    setEditedRecipe(prev => ({
+  const handleIngredientChange = (
+    index: number,
+    field: keyof Ingredient,
+    value: string,
+  ) => {
+    setEditedRecipe((prev) => ({
       ...prev,
       ingredients: prev.ingredients.map((ing, i) =>
-        i === index ? { ...ing, [field]: value } : ing
-      )
+        i === index ? { ...ing, [field]: value } : ing,
+      ),
     }));
   };
 
   const handleInstructionChange = (index: number, value: string) => {
-    setEditedRecipe(prev => ({
+    setEditedRecipe((prev) => ({
       ...prev,
       instructions: prev.instructions.map((inst, i) =>
-        i === index ? value : inst
-      )
+        i === index ? value : inst,
+      ),
     }));
   };
 
@@ -61,8 +41,8 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
       {existingRecipe && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <p className="text-yellow-800">
-            A recipe with the title "{existingRecipe.title}" already exists.
-            You can either modify this recipe or generate a new one.
+            A recipe with the title "{existingRecipe.title}" already exists. You
+            can either modify this recipe or generate a new one.
           </p>
         </div>
       )}
@@ -89,21 +69,27 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
               <input
                 type="text"
                 value={ingredient.amount}
-                onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
+                onChange={(e) =>
+                  handleIngredientChange(index, 'amount', e.target.value)
+                }
                 className="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 placeholder="Amount"
               />
               <input
                 type="text"
                 value={ingredient.unit}
-                onChange={(e) => handleIngredientChange(index, 'unit', e.target.value)}
+                onChange={(e) =>
+                  handleIngredientChange(index, 'unit', e.target.value)
+                }
                 className="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 placeholder="Unit"
               />
               <input
                 type="text"
                 value={ingredient.name}
-                onChange={(e) => handleIngredientChange(index, 'name', e.target.value)}
+                onChange={(e) =>
+                  handleIngredientChange(index, 'name', e.target.value)
+                }
                 className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 placeholder="Ingredient"
               />
@@ -200,4 +186,4 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
       </div>
     </div>
   );
-}; 
+};
